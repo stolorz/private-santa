@@ -6,10 +6,10 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Secret Santa",
     description:
       "Run a secret santa with exclusions, wishlists and WhatsApp delivery.",
-    start_url: "/dashboard",
+    start_url: "/events",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#0a0a0a",
+    background_color: "#eef3f8",
+    theme_color: "#d6e4f1",
     icons: [
       {
         src: "/android.png",

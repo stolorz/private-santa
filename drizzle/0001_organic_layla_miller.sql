@@ -1,1 +1,0 @@
-ALTER TABLE "draw" ADD COLUMN "allow_self_draw" boolean DEFAULT false NOT NULL;

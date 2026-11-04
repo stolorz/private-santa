@@ -1,5 +1,5 @@
 /**
- * Phone helpers. Numbers are stored WhatsApp-style: international format,
+ * Phone helpers. Numbers are stored in international format,
  * digits only, no `+` — the country dial code immediately followed by the
  * subscriber number, e.g. `351912345678`.
  *
@@ -7,7 +7,7 @@
  * and persists the concatenation `${dialCode}${number}`.
  */
 
-export interface DialCode {
+interface DialCode {
   /** country name shown in the picker */
   label: string;
   /** numeric dial code, digits only, no leading `+` */
@@ -26,7 +26,7 @@ export interface DialCode {
  * countries share a dial code (e.g. +1, +44, +7) the first entry wins as
  * the displayed flag.
  */
-export const DIAL_CODES: DialCode[] = [
+const DIAL_CODES: DialCode[] = [
   { label: "Portugal", code: "351", iso2: "pt" },
   { label: "Brazil", code: "55", iso2: "br" },
   { label: "Spain", code: "34", iso2: "es" },
@@ -68,12 +68,6 @@ export const DIAL_CODES: DialCode[] = [
   { label: "United Arab Emirates", code: "971", iso2: "ae" },
 ];
 
-/** Look up the first dial-code entry whose numeric code matches. */
-export function dialCodeInfo(code: string): DialCode | undefined {
-  const c = digitsOnly(code);
-  return DIAL_CODES.find((d) => d.code === c);
-}
-
 /** Default dial code for new numbers (matches the original placeholder). */
 export const DEFAULT_DIAL_CODE = "351";
 
@@ -105,9 +99,10 @@ export function splitPhone(stored: string | null | undefined): {
   return { code: DEFAULT_DIAL_CODE, number: digits };
 }
 
-/** Join a dial code + local number into the stored format, digits only. */
-export function joinPhone(code: string, number: string): string {
-  return `${digitsOnly(code)}${digitsOnly(number)}`;
+/** E.164 (`+351…`) from a stored digits-only number. */
+export function toE164(stored: string): string {
+  const digits = digitsOnly(stored);
+  return digits ? `+${digits}` : stored;
 }
 
 /**

@@ -1,1 +1,0 @@
-ALTER TABLE "draw" ADD COLUMN "history_depth" integer DEFAULT 0 NOT NULL;

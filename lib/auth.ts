@@ -3,12 +3,18 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin as adminPlugin } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
-import { count } from "drizzle-orm";
+import { organiserNeedsEmailVerification } from "@/lib/auth-email";
+import { sendBetterAuthVerificationEmail } from "@/lib/auth-email-send";
+import { beforeCreateUser, afterCreateUser } from "@/lib/auth-hooks";
 import { db, schema } from "@/lib/db";
+import { authBasePath, authTrustedOrigins, publicOrigin } from "@/lib/public-path";
 
 export const auth = betterAuth({
+  baseURL: publicOrigin(),
+  basePath: authBasePath(),
+  trustedOrigins: authTrustedOrigins(),
   database: drizzleAdapter(db, {
-    provider: "pg",
+    provider: "sqlite",
     schema: {
       user: schema.user,
       session: schema.session,
@@ -18,24 +24,18 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    // No email server wired up; treat addresses as verified on signup so
-    // participants can log in immediately.
-    requireEmailVerification: false,
+    requireEmailVerification: organiserNeedsEmailVerification(),
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    sendVerificationEmail: sendBetterAuthVerificationEmail,
   },
   databaseHooks: {
     user: {
       create: {
-        // Bootstrap an admin: the very first registered user, or anyone
-        // matching ADMIN_EMAIL, is promoted to the `admin` role.
-        async before(user) {
-          const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-          const isFirstUser =
-            (await db.select({ c: count() }).from(schema.user))[0]?.c === 0;
-          const isAdmin =
-            isFirstUser ||
-            (!!adminEmail && user.email.toLowerCase() === adminEmail);
-          return { data: { ...user, role: isAdmin ? "admin" : "user" } };
-        },
+        before: beforeCreateUser,
+        after: afterCreateUser,
       },
     },
   },
@@ -45,5 +45,3 @@ export const auth = betterAuth({
     nextCookies(),
   ],
 });
-
-export type Session = typeof auth.$Infer.Session;

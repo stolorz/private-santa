@@ -1,47 +1,30 @@
 import "server-only";
+import { count } from "drizzle-orm";
 import { headers } from "next/headers";
-import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { db, first, schema } from "@/lib/db";
-import type { Participant } from "@/lib/db/schema";
+import { db, schema } from "@/lib/db";
+import { requestCache } from "@/lib/request-cache";
 
-/** Current Better Auth session, or null. */
-export async function getSession() {
+async function getSession() {
   return auth.api.getSession({ headers: await headers() });
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = requestCache(async function getCurrentUser() {
   const session = await getSession();
   return session?.user ?? null;
+});
+
+/** Redirect unless a signed-in organiser is viewing the page. */
+export async function requireAdminPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "admin") redirect("/events");
+  return user;
 }
 
-export async function isAdmin() {
-  const user = await getCurrentUser();
-  return user?.role === "admin";
-}
-
-/**
- * The participant row linked to the current user, creating one lazily
- * the first time a logged-in user is seen. Keeps participant + auth in
- * sync without a separate onboarding step.
- */
-export async function getOrCreateParticipant(): Promise<Participant | null> {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const existing = await first(
-    db
-      .select()
-      .from(schema.participant)
-      .where(eq(schema.participant.userId, user.id)),
-  );
-  if (existing) return existing;
-
-  const inserted = await first(
-    db
-      .insert(schema.participant)
-      .values({ userId: user.id, name: user.name, phone: null })
-      .returning(),
-  );
-  return inserted ?? null;
+/** True once the first organiser account exists. */
+export async function hasRegisteredUser(): Promise<boolean> {
+  const row = (await db.select({ c: count() }).from(schema.user))[0];
+  return (row?.c ?? 0) > 0;
 }

@@ -1,48 +1,55 @@
-import {
-  boolean,
-  integer,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { BudgetKind, Currency } from "@/lib/budget";
+import type { Gender } from "@/lib/gender";
+import type { Language } from "@/lib/language";
+
+const bool = (name: string) => integer(name, { mode: "boolean" });
+const ts = (name: string) => integer(name, { mode: "timestamp" });
+const id = (name = "id") =>
+  integer(name).primaryKey({ autoIncrement: true });
 
 /* ------------------------------------------------------------------ */
 /* Better Auth tables (managed by the admin plugin schema)            */
-/* These mirror what `@better-auth/cli generate` produces for pg.     */
+/* These mirror what `@better-auth/cli generate` produces for sqlite. */
 /* ------------------------------------------------------------------ */
 
-export const user = pgTable("user", {
+export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerified: bool("email_verified").notNull().default(false),
   image: text("image"),
-  // admin plugin fields
   role: text("role"),
-  banned: boolean("banned"),
+  banned: bool("banned"),
   banReason: text("ban_reason"),
-  banExpires: timestamp("ban_expires"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  banExpires: ts("ban_expires"),
+  createdAt: ts("created_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const session = pgTable("session", {
+export const session = sqliteTable("session", {
   id: text("id").primaryKey(),
-  expiresAt: timestamp("expires_at").notNull(),
+  expiresAt: ts("expires_at").notNull(),
   token: text("token").notNull().unique(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  // admin plugin field
   impersonatedBy: text("impersonated_by"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: ts("created_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const account = pgTable("account", {
+export const account = sqliteTable("account", {
   id: text("id").primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
@@ -52,164 +59,382 @@ export const account = pgTable("account", {
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   idToken: text("id_token"),
-  accessTokenExpiresAt: timestamp("access_token_expires_at"),
-  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  accessTokenExpiresAt: ts("access_token_expires_at"),
+  refreshTokenExpiresAt: ts("refresh_token_expires_at"),
   scope: text("scope"),
   password: text("password"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: ts("created_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const verification = pgTable("verification", {
+export const verification = sqliteTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: ts("created_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 /* ------------------------------------------------------------------ */
 /* App tables                                                          */
 /* ------------------------------------------------------------------ */
 
-/**
- * A participant in the secret santa. One per real person.
- * Linked to a Better Auth user once they sign up; `phone` kept for
- * WhatsApp delivery.
- */
-export const participant = pgTable("participant", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+/** Recurring identity (Xmas, Office). Editions belong to one series. */
+export const eventSeries = sqliteTable("event_series", {
+  id: id(),
   name: text("name").notNull(),
-  phone: text("phone"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export type DeliveryMode = "reveal" | "wa_link" | "wa_direct";
-export type DrawStatus = "draft" | "completed";
-
-/**
- * A single secret-santa event/round. Holds budget + how results are
- * delivered. Multiple draws over time form the history used to avoid
- * repeating last year's pairing.
- */
-export const draw = pgTable("draw", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  budget: integer("budget"),
-  // Legacy single delivery mode. Superseded by the per-channel booleans
-  // below; kept for back-compat / existing rows.
-  deliveryMode: text("delivery_mode")
-    .$type<DeliveryMode>()
+  slug: text("slug").notNull().unique(),
+  createdAt: ts("created_at")
     .notNull()
-    .default("reveal"),
-  // Delivery channels — any combination. The private reveal page/token is
-  // always generated; `deliverReveal` only controls whether participants
-  // are pointed at the shareable reveal link. WhatsApp/email/push each send
-  // the match's name directly when enabled.
-  deliverReveal: boolean("deliver_reveal").notNull().default(true),
-  deliverWhatsapp: boolean("deliver_whatsapp").notNull().default(false),
-  deliverEmail: boolean("deliver_email").notNull().default(false),
-  deliverPush: boolean("deliver_push").notNull().default(false),
-  // for the reveal page: max times a token may be viewed before it locks
-  previewLimit: integer("preview_limit").notNull().default(3),
-  // when true, a participant may be assigned to give a gift to themselves
-  // (self-draw). Off by default — normal secret santa is a derangement.
-  allowSelfDraw: boolean("allow_self_draw").notNull().default(false),
-  // How many previous draws to avoid repeating pairings from (soft
-  // constraint). 0 = disabled (default), 1 = last draw, 2 = last two, etc.
-  historyDepth: integer("history_depth").notNull().default(0),
-  status: text("status").$type<DrawStatus>().notNull().default("draft"),
-  // If set and the draw is still a draft, the in-process scheduler runs +
-  // delivers the draw automatically at/after this time. Null = run now.
-  scheduledAt: timestamp("scheduled_at"),
-  // Set when the draw was actually executed (pairs assigned + delivered).
-  executedAt: timestamp("executed_at"),
-  // When the giver->receiver pairs become public (admin history + every
-  // participant's dashboard). Null = never reveal the full list.
-  pairsVisibleAt: timestamp("pairs_visible_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+    .$defaultFn(() => new Date()),
 });
 
 /**
- * One giver -> receiver pairing within a draw. `revealToken` is the
- * secret used by the public reveal page; `revealCount` enforces the
- * per-draw preview limit.
+ * One dated occurrence of a series. `code` is a unique 6-char id
+ * (digits + latin letters) used in URLs; names are not unique.
+ * `occursOn` is YYYY-MM-DD. `location` is the place name in every
+ * language; `locationGdzie` is the Polish "gdzie?" phrase with its
+ * preposition (`w Katowicach`, `u babci`).
+ * `allowSelfDraw` and `avoidPastPairings` are the live automatic-exclusion
+ * choices; the draw copies them when it runs.
  */
-export const assignment = pgTable("assignment", {
-  id: serial("id").primaryKey(),
-  drawId: integer("draw_id")
-    .notNull()
-    .references(() => draw.id, { onDelete: "cascade" }),
-  giverId: integer("giver_id")
-    .notNull()
-    .references(() => participant.id, { onDelete: "cascade" }),
-  receiverId: integer("receiver_id")
-    .notNull()
-    .references(() => participant.id, { onDelete: "cascade" }),
-  revealToken: text("reveal_token").notNull().unique(),
-  revealCount: integer("reveal_count").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const event = sqliteTable(
+  "event",
+  {
+    id: id(),
+    seriesId: integer("series_id")
+      .notNull()
+      .references(() => eventSeries.id, { onDelete: "cascade" }),
+    code: text("code").notNull().unique(),
+    name: text("name").notNull(),
+    nameEn: text("name_en"),
+    nameDe: text("name_de"),
+    nameEs: text("name_es"),
+    nameJa: text("name_ja"),
+    namePl: text("name_pl"),
+    nameDopelniacz: text("name_dopelniacz"),
+    nameCelownik: text("name_celownik"),
+    nameBiernik: text("name_biernik"),
+    nameNarzednik: text("name_narzednik"),
+    nameMiejscownik: text("name_miejscownik"),
+    nameWolacz: text("name_wolacz"),
+    occursOn: text("occurs_on").notNull(),
+    location: text("location"),
+    locationGdzie: text("location_gdzie"),
+    budgetKind: text("budget_kind").$type<BudgetKind>(),
+    budget: real("budget"),
+    currency: text("currency").$type<Currency>().notNull().default("EUR"),
+    budgetEur: real("budget_eur"),
+    budgetPln: real("budget_pln"),
+    budgetJpy: real("budget_jpy"),
+    allowSelfDraw: bool("allow_self_draw").notNull().default(false),
+    avoidPastPairings: bool("avoid_past_pairings").notNull().default(false),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("event_series_id_idx").on(t.seriesId)],
+);
 
 /**
- * A symmetric forbidden pair: giver `aId` will never draw `bId` and
- * vice-versa (e.g. couples, siblings).
+ * A person unique across the app. Name, contact details and login live
+ * here. Phone and email may be shared (spouses, children).
  */
-export const exclusion = pgTable("exclusion", {
-  id: serial("id").primaryKey(),
-  aId: integer("a_id")
-    .notNull()
-    .references(() => participant.id, { onDelete: "cascade" }),
-  bId: integer("b_id")
-    .notNull()
-    .references(() => participant.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const person = sqliteTable(
+  "person",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    nameNormalized: text("name_normalized").notNull().default(""),
+    nameDopelniacz: text("name_dopelniacz"),
+    nameCelownik: text("name_celownik"),
+    nameBiernik: text("name_biernik"),
+    nameNarzednik: text("name_narzednik"),
+    nameMiejscownik: text("name_miejscownik"),
+    nameWolacz: text("name_wolacz"),
+    phone: text("phone"),
+    email: text("email"),
+    language: text("language").$type<Language>().notNull().default("pl"),
+    gender: text("gender").$type<Gender>(),
+    photo: text("photo"),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("person_phone_idx").on(t.phone),
+    index("person_email_idx").on(t.email),
+    index("person_name_normalized_idx").on(t.nameNormalized),
+    uniqueIndex("person_user_unique").on(t.userId),
+  ],
+);
 
-/** A wishlist line owned by a participant, visible to their santa. */
-export const wishlistItem = pgTable("wishlist_item", {
-  id: serial("id").primaryKey(),
-  participantId: integer("participant_id")
-    .notNull()
-    .references(() => participant.id, { onDelete: "cascade" }),
-  text: text("text").notNull(),
-  url: text("url"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+/** A person's seat in one edition. Wishlist hangs off this row. */
+export const guest = sqliteTable(
+  "guest",
+  {
+    id: id(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    personId: integer("person_id")
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    wishlistUpdatedAt: ts("wishlist_updated_at"),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("guest_event_person_unique").on(t.eventId, t.personId),
+    index("guest_person_id_idx").on(t.personId),
+  ],
+);
+
+export type DrawStatus = "completed";
 
 /**
- * A Web Push subscription (PWA notifications) owned by a user. One user
- * may have several (multiple devices/browsers). `endpoint` is unique.
+ * The current secret-santa lottery on an edition. Holds budget, delivery
+ * channels, solver stats, and the automatic-exclusion copy used for this
+ * lottery (`allowSelfDraw`, `avoidPastPairings`). The edition holds the
+ * live choice.
  */
-export const pushSubscription = pgTable("push_subscription", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull().unique(),
-  p256dh: text("p256dh").notNull(),
-  auth: text("auth").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const draw = sqliteTable(
+  "draw",
+  {
+    id: id(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    budgetKind: text("budget_kind").$type<BudgetKind>(),
+    budget: real("budget"),
+    currency: text("currency").$type<Currency>(),
+    budgetEur: real("budget_eur"),
+    budgetPln: real("budget_pln"),
+    budgetJpy: real("budget_jpy"),
+    deliverWhatsapp: bool("deliver_whatsapp").notNull().default(false),
+    deliverSignal: bool("deliver_signal").notNull().default(false),
+    deliverEmail: bool("deliver_email").notNull().default(false),
+    allowSelfDraw: bool("allow_self_draw").notNull().default(false),
+    avoidPastPairings: bool("avoid_past_pairings").notNull().default(false),
+    status: text("status").$type<DrawStatus>().notNull().default("completed"),
+    executedAt: ts("executed_at"),
+    durationMs: integer("duration_ms"),
+    attempts: integer("attempts"),
+    historyLayers: integer("history_layers"),
+    layersDropped: integer("layers_dropped"),
+    relaxedRestrictions: bool("relaxed_restrictions").notNull().default(false),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("draw_event_created_idx").on(t.eventId, t.createdAt)],
+);
 
-/**
- * Generic key/value app settings, edited at runtime from the admin panel.
- * Currently holds OpenGraph / site metadata (title, description, icon,
- * banner). One row per key.
- */
-export const appSetting = pgTable("app_setting", {
+export const assignment = sqliteTable(
+  "assignment",
+  {
+    id: id(),
+    drawId: integer("draw_id")
+      .notNull()
+      .references(() => draw.id, { onDelete: "cascade" }),
+    giverId: integer("giver_id")
+      .notNull()
+      .references(() => guest.id, { onDelete: "cascade" }),
+    receiverId: integer("receiver_id")
+      .notNull()
+      .references(() => guest.id, { onDelete: "cascade" }),
+    revealToken: text("reveal_token").notNull().unique(),
+    revealCount: integer("reveal_count").notNull().default(0),
+    openedAt: ts("opened_at"),
+    wishlistSeenAt: ts("wishlist_seen_at"),
+    wishlistNotifyClaim: text("wishlist_notify_claim"),
+    deliveredWhatsapp: bool("delivered_whatsapp").notNull().default(false),
+    deliveredSignal: bool("delivered_signal").notNull().default(false),
+    deliveredEmail: bool("delivered_email").notNull().default(false),
+    deliveredManual: bool("delivered_manual").notNull().default(false),
+    emailFailed: bool("email_failed").notNull().default(false),
+    emailFailedReason: text("email_failed_reason"),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("assignment_draw_giver_unique").on(t.drawId, t.giverId),
+    uniqueIndex("assignment_draw_receiver_unique").on(t.drawId, t.receiverId),
+    index("assignment_giver_id_idx").on(t.giverId),
+    index("assignment_receiver_id_idx").on(t.receiverId),
+  ],
+);
+
+export const exclusion = sqliteTable(
+  "exclusion",
+  {
+    id: id(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    aId: integer("a_id")
+      .notNull()
+      .references(() => guest.id, { onDelete: "cascade" }),
+    bId: integer("b_id")
+      .notNull()
+      .references(() => guest.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("exclusion_event_pair_unique").on(t.eventId, t.aId, t.bId),
+    index("exclusion_event_id_idx").on(t.eventId),
+    index("exclusion_b_id_idx").on(t.bId),
+  ],
+);
+
+export type InvitationSource = "draw" | "pending" | "resend";
+export type InvitationChannel = "whatsapp" | "signal" | "email";
+export type InvitationSendStatus = "sent" | "failed" | "skipped";
+
+/** Append-only invitation log. New rows are `"pending"` or `"resend"` from the Delivery tab; `"draw"` remains only on older rows. */
+export const invitationSend = sqliteTable(
+  "invitation_send",
+  {
+    id: id(),
+    drawId: integer("draw_id")
+      .notNull()
+      .references(() => draw.id, { onDelete: "cascade" }),
+    assignmentId: integer("assignment_id")
+      .notNull()
+      .references(() => assignment.id, { onDelete: "cascade" }),
+    batchId: text("batch_id").notNull(),
+    source: text("source").$type<InvitationSource>().notNull(),
+    channel: text("channel").$type<InvitationChannel>().notNull(),
+    status: text("status").$type<InvitationSendStatus>().notNull(),
+    error: text("error"),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("invitation_send_draw_idx").on(t.drawId),
+    index("invitation_send_assignment_idx").on(t.assignmentId),
+    index("invitation_send_batch_idx").on(t.batchId),
+  ],
+);
+
+export type GuestVisitKind = "opened" | "revealed";
+
+/** Append-only debug log of guest opens and unwraps. */
+export const guestActivity = sqliteTable(
+  "guest_activity",
+  {
+    id: id(),
+    assignmentId: integer("assignment_id")
+      .notNull()
+      .references(() => assignment.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<GuestVisitKind>().notNull(),
+    ip: text("ip"),
+    userAgent: text("user_agent"),
+    browser: text("browser"),
+    os: text("os"),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("guest_activity_assignment_idx").on(t.assignmentId)],
+);
+
+export const wishlistItem = sqliteTable(
+  "wishlist_item",
+  {
+    id: id(),
+    guestId: integer("guest_id")
+      .notNull()
+      .references(() => guest.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("wishlist_item_guest_id_idx").on(t.guestId)],
+);
+
+export const pushSubscription = sqliteTable(
+  "push_subscription",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: ts("created_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("push_subscription_user_id_idx").on(t.userId)],
+);
+
+export const appSetting = sqliteTable("app_setting", {
   key: text("key").primaryKey(),
   value: text("value"),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
+/**
+ * Per-edition copy of email / Signal / push / reveal templates.
+ * Seeded from the previous edition, or from the committed JSON defaults
+ * when there is no previous copy. Not in git.
+ */
+export const eventTemplate = sqliteTable(
+  "event_template",
+  {
+    id: id(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    templateId: text("template_id").notNull(),
+    language: text("language").notNull(),
+    value: text("value").notNull(),
+  },
+  (t) => [
+    uniqueIndex("event_template_event_lang_id_unique").on(
+      t.eventId,
+      t.language,
+      t.templateId,
+    ),
+    index("event_template_event_id_idx").on(t.eventId),
+  ],
+);
+
 export type User = typeof user.$inferSelect;
-export type Participant = typeof participant.$inferSelect;
+export type EventSeries = typeof eventSeries.$inferSelect;
+export type Event = typeof event.$inferSelect;
+export type Person = typeof person.$inferSelect;
+export type Guest = typeof guest.$inferSelect;
 export type Draw = typeof draw.$inferSelect;
 export type Assignment = typeof assignment.$inferSelect;
+export type InvitationSend = typeof invitationSend.$inferSelect;
 export type Exclusion = typeof exclusion.$inferSelect;
+export type GuestActivity = typeof guestActivity.$inferSelect;
 export type WishlistItem = typeof wishlistItem.$inferSelect;
 export type AppSetting = typeof appSetting.$inferSelect;
+export type EventTemplate = typeof eventTemplate.$inferSelect;
 export type PushSubscription = typeof pushSubscription.$inferSelect;
+
+/** Guest seat with the person's name/phone/email/login resolved. */
+export type GuestView = Guest & Omit<Person, "id" | "createdAt">;

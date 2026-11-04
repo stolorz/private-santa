@@ -136,11 +136,27 @@ dist
 # history
 .history
 
-# SQLite database files
+# SQLite database files + local app data (SQLite + Signal store)
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 sqlite.db*
+/data/
+
+# Live host map (SSH, rsync, production URLs). See deploy/ops.example.md.
+/ops/
+
+# Local product rationale for template wording. See AGENTS.md.
+/PRIVATE_CONTEXT.md
+
+# macOS
+.DS_Store
 
 # next-env
 next-env.d.ts
+
+# OFL fonts downloaded by `npm run email:art`
+/scripts/fonts/

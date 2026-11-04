@@ -1,23 +1,33 @@
 /**
  * Exclusion-aware secret-santa draw.
  *
- * Generalises the original Fisher-Yates cycle approach (old
- * routes/sorteio.js) into a constraint solver: produce a derangement
- * (nobody draws themselves) that also respects forbidden pairs, and —
- * when possible — avoids repeating pairings from previous draws.
+ * Constraint solver: produce a derangement (nobody draws themselves,
+ * unless self-draw is on) that respects forbidden pairs, and — when
+ * possible — avoids repeating pairings from previous draws. History is
+ * grouped by year (oldest first). Each layer is searched once (complete
+ * backtracking, most-constrained giver first). If that search fails, the
+ * oldest remaining year is dropped and the solver retries.
  */
+
+import { DrawError } from "@/lib/errors";
 
 export interface DrawResult {
   /** giver id -> receiver id */
   pairs: Map<number, number>;
+  /** tryAssign calls across history-layer phases */
+  attempts: number;
+  /** wall time of this solve, in milliseconds */
+  durationMs: number;
+  /** how many oldest past-pairing years were dropped */
+  layersDropped: number;
+  /** true when at least one history layer had to be dropped */
+  relaxedRestrictions: boolean;
 }
 
-export class DrawError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "DrawError";
-  }
-}
+export { DrawError };
+
+/** Previous `giver -> receiver` pairs from a single past draw/year. */
+export type HistoryLayer = Array<[number, number]>;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -33,8 +43,10 @@ function pairKey(giver: number, receiver: number): string {
 }
 
 interface SolveOptions {
-  /** participant ids taking part in this draw */
-  ids: number[];
+  /** givers taking part in this solve */
+  givers: number[];
+  /** receivers available to those givers (same length) */
+  receivers: number[];
   /**
    * Forbidden ordered pairs as a set of `giver->receiver` keys.
    * Exclusions are symmetric, so callers should add both directions.
@@ -42,105 +54,266 @@ interface SolveOptions {
   forbidden: Set<string>;
   /** when true, a giver may be matched to themselves (self-draw). */
   allowSelfDraw?: boolean;
-  /** how many random restarts before giving up */
-  attempts?: number;
+}
+
+function candidatesFor(
+  giver: number,
+  receivers: number[],
+  used: Set<number>,
+  forbidden: Set<string>,
+  allowSelfDraw: boolean,
+): number[] {
+  return receivers.filter(
+    (r) =>
+      (allowSelfDraw || r !== giver) &&
+      !used.has(r) &&
+      !forbidden.has(pairKey(giver, r)),
+  );
 }
 
 /**
- * Backtracking assignment. Each giver gets a distinct receiver that is
- * not forbidden, and (unless self-draw is allowed) not themselves.
- * Returns null if this restart fails.
+ * Complete backtracking assignment. Each giver gets a distinct receiver
+ * that is not forbidden, and (unless self-draw is allowed) not themselves.
+ * Givers with the fewest remaining candidates are tried first. Returns
+ * null if no assignment exists under these constraints.
  */
 function tryAssign(opts: SolveOptions): Map<number, number> | null {
-  const { ids, forbidden, allowSelfDraw = false } = opts;
-  const givers = shuffle(ids);
+  const { givers: giverIds, receivers, forbidden, allowSelfDraw = false } =
+    opts;
+  const remaining = shuffle(giverIds);
   const used = new Set<number>();
   const pairs = new Map<number, number>();
 
-  const backtrack = (i: number): boolean => {
-    if (i === givers.length) return true;
-    const giver = givers[i];
-    const candidates = shuffle(ids).filter(
-      (r) =>
-        (allowSelfDraw || r !== giver) &&
-        !used.has(r) &&
-        !forbidden.has(pairKey(giver, r)),
+  const backtrack = (): boolean => {
+    if (remaining.length === 0) return true;
+
+    let bestAt = 0;
+    let bestCandidates = candidatesFor(
+      remaining[0],
+      receivers,
+      used,
+      forbidden,
+      allowSelfDraw,
     );
-    for (const receiver of candidates) {
+    for (let i = 1; i < remaining.length; i++) {
+      const options = candidatesFor(
+        remaining[i],
+        receivers,
+        used,
+        forbidden,
+        allowSelfDraw,
+      );
+      if (
+        options.length < bestCandidates.length ||
+        (options.length === bestCandidates.length && Math.random() < 0.5)
+      ) {
+        bestAt = i;
+        bestCandidates = options;
+      }
+    }
+
+    const giver = remaining[bestAt];
+    remaining.splice(bestAt, 1);
+    for (const receiver of shuffle(bestCandidates)) {
       pairs.set(giver, receiver);
       used.add(receiver);
-      if (backtrack(i + 1)) return true;
+      if (backtrack()) return true;
       used.delete(receiver);
       pairs.delete(giver);
     }
+    remaining.splice(bestAt, 0, giver);
     return false;
   };
 
-  return backtrack(0) ? pairs : null;
+  return backtrack() ? pairs : null;
 }
 
 /** Options controlling how a draw is solved. */
 export interface RunDrawOptions {
   /** when true, a participant may draw themselves. Default false. */
   allowSelfDraw?: boolean;
+  /**
+   * Receivers to assign `ids` (givers) onto. Must be the same length as
+   * `ids`. Defaults to `ids` (a permutation of one list).
+   */
+  receivers?: number[];
 }
 
 /**
- * Run a draw.
- *
- * @param ids        participant ids (need at least 2)
- * @param exclusions symmetric forbidden pairs `[a, b]`
- * @param history    previous `giver->receiver` pairs to avoid as a soft
- *                   constraint (relaxed automatically if unsatisfiable)
- * @param options    extra solve options (e.g. allowSelfDraw)
+ * Guests who still need a giver-assignment and guests who still need a
+ * receiver-assignment. Order follows `guestIds`. The two lists are the
+ * same people after a complete permutation; they differ after a pair is
+ * removed from a cycle.
  */
-export function runDraw(
-  ids: number[],
-  exclusions: Array<[number, number]> = [],
-  history: Array<[number, number]> = [],
-  options: RunDrawOptions = {},
-): DrawResult {
-  const allowSelfDraw = options.allowSelfDraw ?? false;
+export function leftoverIds(
+  guestIds: number[],
+  assignments: Array<{ giverId: number; receiverId: number }>,
+): { givers: number[]; receivers: number[] } {
+  const takenGivers = new Set(assignments.map((a) => a.giverId));
+  const takenReceivers = new Set(assignments.map((a) => a.receiverId));
+  return {
+    givers: guestIds.filter((id) => !takenGivers.has(id)),
+    receivers: guestIds.filter((id) => !takenReceivers.has(id)),
+  };
+}
 
-  if (ids.length < 2) {
-    throw new DrawError("Need at least 2 participants to run a draw.");
-  }
-
+function hardForbidden(exclusions: Array<[number, number]>): Set<string> {
   const hard = new Set<string>();
   for (const [a, b] of exclusions) {
     hard.add(pairKey(a, b));
     hard.add(pairKey(b, a));
   }
+  return hard;
+}
 
-  // Quick feasibility check: every giver must have >=1 allowed receiver.
-  // Self is only a candidate when self-draw is enabled.
-  for (const g of ids) {
-    const ok = ids.some(
-      (r) => (allowSelfDraw || r !== g) && !hard.has(pairKey(g, r)),
+/** Whether leftover guests can still be drawn. */
+export function drawReadiness(opts: {
+  guestCount: number;
+  leftoverGivers: number;
+  leftoverReceivers: number;
+  leftoverGiverId?: number;
+  leftoverReceiverId?: number;
+  disallowSelfDraw: boolean;
+}): { everyoneGives: boolean; canDrawRemaining: boolean } {
+  const everyoneGives = opts.guestCount > 0 && opts.leftoverGivers === 0;
+  const canDrawRemaining =
+    opts.leftoverGivers >= 2 ||
+    (opts.leftoverGivers === 1 &&
+      opts.leftoverReceivers === 1 &&
+      (opts.leftoverGiverId !== opts.leftoverReceiverId ||
+        !opts.disallowSelfDraw));
+  return { everyoneGives, canDrawRemaining };
+}
+
+/**
+ * Hard-constraint candidate receivers for each giver: leftover
+ * receivers minus self (unless `allowSelfDraw`) minus symmetric
+ * exclusions. Past pairings are omitted because they are soft and
+ * may be dropped by the solver.
+ *
+ * Receiver order is preserved from `receivers`. A giver with no
+ * allowed receiver maps to an empty array.
+ */
+export function possibleRecipientsByGiver(
+  givers: number[],
+  receivers: number[],
+  exclusions: Array<[number, number]> = [],
+  options: { allowSelfDraw?: boolean } = {},
+): Map<number, number[]> {
+  const allowSelfDraw = options.allowSelfDraw ?? false;
+  const hard = hardForbidden(exclusions);
+  // Nothing is assigned yet, so the shared candidate filter's used set stays empty.
+  const used = new Set<number>();
+  const map = new Map<number, number[]>();
+  for (const g of givers) {
+    map.set(g, candidatesFor(g, receivers, used, hard, allowSelfDraw));
+  }
+  return map;
+}
+
+function allHaveCandidates(
+  givers: number[],
+  receivers: number[],
+  forbidden: Set<string>,
+  allowSelfDraw: boolean,
+): boolean {
+  // Same hard-constraint check as `possibleRecipientsByGiver`; nobody is assigned yet.
+  const used = new Set<number>();
+  return givers.every(
+    (g) =>
+      candidatesFor(g, receivers, used, forbidden, allowSelfDraw).length > 0,
+  );
+}
+
+/**
+ * Run a draw.
+ *
+ * @param ids             giver ids. A full-group draw passes every guest;
+ *                        a leftover draw passes only unassigned givers.
+ *                        A permutation of one list needs at least 2 ids
+ *                        unless self-draw is on (then 1 is allowed).
+ * @param exclusions      symmetric forbidden pairs `[a, b]`
+ * @param historyLayers   earlier editions' `giver->receiver` pairs, **oldest
+ *                        first**. If a layer has no assignment the oldest
+ *                        remaining layer is dropped (or immediately if
+ *                        someone already has no candidate). `attempts`
+ *                        counts solver searches only — dropping a layer
+ *                        without calling the solver does not increment
+ *                        them. An empty list (or dropping every layer)
+ *                        keeps only hard exclusions.
+ * @param options         extra solve options (`allowSelfDraw`, `receivers`)
+ */
+export function runDraw(
+  ids: number[],
+  exclusions: Array<[number, number]> = [],
+  historyLayers: HistoryLayer[] = [],
+  options: RunDrawOptions = {},
+): DrawResult {
+  const allowSelfDraw = options.allowSelfDraw ?? false;
+  const givers = ids;
+  const receivers = options.receivers ?? ids;
+  const started = performance.now();
+
+  if (givers.length !== receivers.length) {
+    throw new DrawError("Giver and receiver lists must be the same length.");
+  }
+  if (givers.length === 0) {
+    throw new DrawError("Need at least 2 participants to run a draw.");
+  }
+  // Full-group permutation of one list still needs ≥2 people, unless
+  // self-draw turns a single leftover guest into 1→1.
+  if (
+    options.receivers == null &&
+    givers.length < 2 &&
+    !allowSelfDraw
+  ) {
+    throw new DrawError("Need at least 2 participants to run a draw.");
+  }
+
+  const hard = hardForbidden(exclusions);
+
+  // Every giver must have ≥1 allowed receiver under hard exclusions.
+  if (!allHaveCandidates(givers, receivers, hard, allowSelfDraw)) {
+    throw new DrawError(
+      "No valid assignment exists — exclusions are too restrictive.",
     );
-    if (!ok) {
-      throw new DrawError(
-        "No valid assignment exists — exclusions are too restrictive.",
-      );
-    }
   }
 
-  const ATTEMPTS = 500;
-  const histSet = new Set(history.map(([g, r]) => pairKey(g, r)));
+  const remaining = historyLayers.map(
+    (layer) => new Set(layer.map(([g, r]) => pairKey(g, r))),
+  );
+  const initialLayers = remaining.length;
+  let attempts = 0;
 
-  // Phase 1: try to satisfy hard + soft (history) constraints.
-  if (histSet.size > 0) {
-    const softForbidden = new Set([...hard, ...histSet]);
-    for (let i = 0; i < ATTEMPTS; i++) {
-      const pairs = tryAssign({ ids, forbidden: softForbidden, allowSelfDraw });
-      if (pairs) return { pairs };
+  // Forbid remaining history years; drop the oldest year if this
+  // layer has no assignment (or immediately if someone already has
+  // no candidate).
+  while (true) {
+    const forbidden = new Set(hard);
+    for (const layer of remaining) {
+      for (const key of layer) forbidden.add(key);
     }
-  }
-
-  // Phase 2: relax history, keep hard exclusions.
-  for (let i = 0; i < ATTEMPTS; i++) {
-    const pairs = tryAssign({ ids, forbidden: hard, allowSelfDraw });
-    if (pairs) return { pairs };
+    if (allHaveCandidates(givers, receivers, forbidden, allowSelfDraw)) {
+      attempts += 1;
+      const pairs = tryAssign({
+        givers,
+        receivers,
+        forbidden,
+        allowSelfDraw,
+      });
+      if (pairs) {
+        const layersDropped = initialLayers - remaining.length;
+        return {
+          pairs,
+          attempts,
+          durationMs: Math.round(performance.now() - started),
+          layersDropped,
+          relaxedRestrictions: layersDropped > 0,
+        };
+      }
+    }
+    if (remaining.length === 0) break;
+    remaining.shift();
   }
 
   throw new DrawError(

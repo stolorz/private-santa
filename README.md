@@ -1,258 +1,118 @@
 <div align="center">
 
-# 🎁 WhatsApp Secret Santa
+# WhatsApp Secret Santa
 
-### *Secret Santa, now with superpowers.* ✨
+Private Secret Santa draws for a family or office. One organiser account
+runs the edition; guests never sign up — they open a private link.
 
-Participants sign up, build their **wishlist**, and the organiser runs a draw
-that respects **exclusions**, sets a **budget**, avoids **repeating past
-pairings**, and delivers results via a **reveal page**, **WhatsApp**, **email**
-or **push**. Schedule it for later, reveal the pairings on a date — or keep
-them secret forever.
-
-Rewritten from the ground up: from an Express prototype → **Next.js 16 · React 19 · Better Auth · Postgres/Drizzle**. Dockerised, deploy-ready for **Coolify**. 🐳
-
-<img width="1774" height="887" alt="f70372d1-e83c-4261-a849-4ac7585abdcd" src="https://github.com/user-attachments/assets/60d4588b-b22e-41b8-ad23-272ee3500aec" />
-
-<br>
-<br>
-
-![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Better Auth](https://img.shields.io/badge/Better_Auth-1a1a1a?style=for-the-badge&logo=auth0&logoColor=white)
-![Postgres](https://img.shields.io/badge/Postgres_+_Drizzle-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![WhatsApp](https://img.shields.io/badge/WhatsApp_API-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)
+**Next.js 16 · React 19 · Better Auth · SQLite/Drizzle · Tailwind v4**
 
 </div>
 
 ---
 
-## ✨ Features
+## How it works
 
-| | Feature | What it does |
-|:--:|:--|:--|
-| 🔐 | **Accounts** | Email/password login (Better Auth). The first user (or `ADMIN_EMAIL`) becomes admin automatically. |
-| 📝 | **Wishlists** | Each participant lists what they'd like to receive — their santa sees it all. |
-| 🚫 | **Exclusions** | Forbidden pairs (couples, siblings) never draw each other. |
-| 💰 | **Budget** | Optional per-draw budget, shown on the reveal page. |
-| 🕰️ | **History** | Past draws are used to avoid repeating last year's pairing — and each member sees their own match history on their dashboard. |
-| 🎲 | **Robust algorithm** | Backtracking derangement — respects constraints, or fails with a clear error. |
-| 🔁 | **Self-draw toggle** | Optional per-draw switch to allow being matched to yourself (off by default). |
-| ⏰ | **Schedule a draw** | Pick a date/time — the draw runs and delivers itself automatically (in-process scheduler). |
-| 👀 | **Reveal pairings** | Choose a date when the full giver→receiver list goes public (admin history + everyone's dashboard), or never. |
-| 📬 | **Pick your delivery** | Per draw: reveal page, WhatsApp + link, or WhatsApp direct. |
-| ✉️ | **Email (optional)** | Resend integration — emails the match to participants with a known account email. |
-| 🔔 | **Push (optional)** | Installable PWA with Web Push notifications when a match is ready. |
-| 🔗 | **Account linking** | Manually-added participants can later be linked to a real user account. |
-| 🌐 | **Site metadata** | Admin "Technical" tab edits OpenGraph title, description, icon and link-preview banner at runtime. |
-| 🏳️ | **Phone with flags** | Country dial-code picker with SVG flags + free-typed codes; stored WhatsApp-style. |
+The first account is the organiser. Later sign-ups are rejected. In production, `ADMIN_EMAIL` must be set and that first address has to match it.
 
-<br>
+A **series** holds dated **editions**. The event list shows a red problem count on each edition: a template that fails validation, a guest with a missing or invalid field, or an Event settings input that is missing or invalid. A new edition copies guests, exclusions, and templates. Wishlists start empty. Saving an edition requires the party date, the Polish, German, Spanish, and Japanese names, all six Polish cases of the event name, and the place. People are reused across editions. The same name with a different phone or email is a different person. A shared number or mailbox warns; the draw still pairs them.
 
-### 📬 Delivery modes
+A guest has a name, language (Polish, English, German, Spanish, or Japanese), a required gender, optional phone, email, and photo, plus all six Polish name cases. Saving a guest without a gender or one of those cases is refused. The guest list shows `Gender is required.` until one is set. Invitations wait until every guest has a gender. Wishlist items are text on that guest's reveal page.
 
-<table>
-<tr>
-<td align="center">🔗<br><b>Reveal</b></td>
-<td>Private reveal links, with a per-link <b>view limit</b>.</td>
-</tr>
-<tr>
-<td align="center">💬<br><b>WA + Link</b></td>
-<td>WhatsApp message containing the reveal link.</td>
-</tr>
-<tr>
-<td align="center">🎅<br><b>WA Direct</b></td>
-<td>WhatsApp message with the match's name in the template.</td>
-</tr>
-</table>
+Exclusions are forbidden pairs and apply in both directions. Pairing someone with themselves blocks a self-draw for that person. Automatic exclusions (disallow self-draw, avoid past pairings) are saved on the edition from the Exclusions tab and are what the draw uses.
 
----
+The draw is a backtracking derangement. Self-draw is optional. "Avoid past pairings" is optional and uses earlier editions in the same series; the oldest year drops first when the solver cannot finish. Exclusions always stay. Running the draw again fills empty slots and keeps existing pairs. The organiser starts it from the edition admin. There is no schedule and no public reveal date. On the Draw tab, Export CSV downloads the current pairing list as `draw_results_YYYY.csv` (giver and receiver), using the edition’s party year.
 
-## 🧱 Stack
+The budget is a required choice on the edition: a positive amount in EUR, PLN, or JPY (the other two amounts come from the NBP rate), make-the-gift with no money, or no spending limit. An empty budget is not a choice. The edition form will not save without one. The draw can still be run first. Invitations stay blocked until a choice is saved, and the guest page shows the matching sentence. Guest messages print that amount with the separators and currency mark of the guest's language. WhatsApp still sends only the name and the link.
 
-| Layer | Choice |
+The edition also has a place: the name (`Katowice`) and the Polish phrase that answers "gdzie?" with its own preposition (`w Katowicach`, `we Wrocławiu`, `u babci`). Templates use them as `{location}` and `{location_gdzie}`. A new edition copies the place. The form will not save while either one is blank, and invitations wait until both are filled.
+
+The reveal link (`/{token}`) is always created. WhatsApp, Signal, and email send that link when the channel is configured and selected for the draw. Sending stays blocked while any guest in the edition is missing a Polish case, or while the place or the budget choice is missing; the draw itself still runs.
+
+| Channel | What is sent |
 |:--|:--|
-| 🖼️ **Framework** | Next.js 16 (App Router) · React 19 |
-| 🔐 **Auth** | Better Auth (+ admin plugin) |
-| 🗄️ **Database** | Postgres via Drizzle ORM (`pg`) |
-| 🎨 **UI** | Tailwind CSS v4 · shadcn/ui · react-day-picker · flag-icons |
-| 📲 **Messaging** | Meta WhatsApp Cloud API · Resend (email) · Web Push (PWA) |
-| ⏰ **Scheduling** | In-process poller via `instrumentation.ts` |
-| 🐳 **Deploy** | Docker · docker-compose · Coolify-ready |
+| **Reveal page** | Unwrap, match, wishlist, and budget. After unwrap, returning guests also see who they gave to in earlier years of the same series. |
+| **WhatsApp** | Approved template: `{{1}}` giver's name, `{{2}}` private link. Skips guests with no phone. |
+| **Signal** | Greeting plus the private link, from the organiser's linked device. Skips guests with no phone. |
+| **Email** | The private link, to the person's email or a linked login email. |
+
+IMAP polling marks bounced mail on the guest list.
+
+When a guest adds, removes, or edits a wish, their Secret Santa gets one short Signal message and one short email, on every channel that can already reach them. Further changes stay quiet until that Santa opens the private page and the list is caught up. The notice names the kind of change and includes the private link. It never names the person receiving the gift.
+
+Push is organiser-only. It fires when a guest opens the link, unwraps the match, adds a wishlist item, or when their santa reads the list.
+
+Copy for email, Signal, push, and the reveal page is editable per language. **Settings → Templates** is the shared reference (committed JSON files under `lib/templates/defaults/`). Those files keep a warm, friendly tone that is easy to understand, and follow official grammar, spelling, and letter-writing rules for each language wherever possible (vocative commas in English, Polish, and Spanish greetings, and German `Hallo {giver}!` without a comma; English targets the British variant — British spelling and grammar, spaced en-dashes, `PS` without periods; Polish and German lowercase after a comma salutation; Spanish colon after the greeting and `P. D.:` with a colon; Polish `PS` without periods). Guests are addressed by first name. `{location}` is typically a city or town name, so non-Polish templates use `in` / `en` / `に` with that name. Tentative phrasing around gathering in `{location}` (such as Japanese `過ごせそうだよ`) and the postal fallback are intentional. Polish `dla jednej wylosowanej osoby` intentionally stresses preparing a single present, and delivered emails are assumed to render the HTML button properly. Casual, friendly Japanese is intentional, and the steps stay simple. Each edition has its own **Templates** tab, filled from the previous edition or from that reference. Restore on an edition copies the current Settings wording into the form. Preview renders the unsaved copy with sample guests and events, in any of the five languages. WhatsApp still uses the Meta template under Integrations. A placeholder that does not parse keeps Save disabled, lists the broken field in red, and blocks invitations until it is fixed. The Templates tab shows a red count of those problem lines on every Settings page and every edition tab. An open draft replaces that count until you leave. Each language button shows the count for that language. With no problem lines, those buttons stay as they are.
+
+A save on Settings → Templates writes those JSON files on the running machine. On production that lasts until the next `rsync --delete` from the laptop, so commit the JSON from the checkout you edited. Edition wording lives in the database and is not in git.
 
 ---
 
-## 🚀 Getting started
+## Getting started
 
-### 🐳 Option A — Docker (recommended)
-
-Brings up the app **and** Postgres together. Migrations run automatically on
-start.
+Needs **Node.js**. Data is a local SQLite file.
 
 ```bash
-# 1️⃣  Configure
-cp .env.example .env
-#   • BETTER_AUTH_SECRET  →  openssl rand -base64 32
-#   • ADMIN_EMAIL         →  the email you'll sign up with (becomes admin)
-#   • POSTGRES_*          →  credentials for the bundled database
-#   • WA_*                →  (optional) only for WhatsApp delivery
-
-# 2️⃣  Build + run
-docker compose up -d --build   # 👉  http://localhost:3000
-```
-
-### 💻 Option B — Local dev
-
-```bash
-# 1️⃣  Install
 npm install
-
-# 2️⃣  Configure (set DATABASE_URL to a running Postgres)
 cp .env.example .env
+#   BETTER_AUTH_SECRET  →  openssl rand -base64 32
+#     (or Settings → Safety after you have an organiser account)
+#   ADMIN_EMAIL         →  required in production; first signup must match it
+#   SQLITE_PATH         →  data/santa.sqlite (default)
+#   SMTP_* (optional)        →  require organiser email verification at signup
+#   Delivery channels        →  Settings → Integrations (not .env)
 
-# 3️⃣  Apply migrations
 npm run db:migrate
-
-# 4️⃣  Run
-npm run dev      # 👉  http://localhost:3000
+npm run dev      # http://localhost:3000
 ```
 
-> 💡 Need a quick Postgres for local dev?
-> `docker compose up -d db` starts just the database.
+Production: `npm run build` then `npm start`. Keep the Node process running so Signal stay-linked checks and email bounce polling keep running.
 
-> 💡 Sign up with `ADMIN_EMAIL` to get the admin role, then open **/admin** to
-> add participants, set exclusions, choose delivery, and run the draw.
+**Backup:** copy `SQLITE_PATH` (default `data/santa.sqlite`), guest photos in `data/uploads` (or `UPLOADS_DIR`), and, when you use Signal, the `SIGNAL_STORE_DIR` folder.
 
----
+`NEXT_PUBLIC_APP_URL` is baked into the client at **build time** — set it before `npm run build` so guest links use the right domain.
 
-## ☁️ Deploy on Coolify
+When `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` + `SMTP_FROM` are set in `.env`, signup requires email verification before login. That message is sent with the mailbox from **Settings → Integrations**. Create a series from **/events**.
 
-This repo ships a `Dockerfile` + `docker-compose.yml`, so Coolify can deploy it
-as a **Docker Compose** resource out of the box.
-
-1. **New Resource → Docker Compose**, point it at this repo.
-2. Set the environment variables (Coolify reads them into the compose file):
-   - `BETTER_AUTH_SECRET` — a long random string
-   - `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` — your public URL (e.g. `https://santa.example.com`)
-   - `ADMIN_EMAIL` — the account to auto-promote to admin
-   - `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`
-   - `WA_*` — optional, only for WhatsApp delivery
-   - `RESEND_*` — optional, for email delivery
-   - `VAPID_*` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — optional, for push notifications
-3. Deploy. 🎉 The bundled Postgres persists in the `pgdata` volume and
-   **migrations run automatically** on every container start.
-
-> ℹ️ `NEXT_PUBLIC_APP_URL` is baked into the client at **build time** — set it
-> before the image is built so reveal links use the right domain.
-
-> ℹ️ Prefer Coolify's **managed Postgres** instead of the bundled one? Remove
-> the `db` service from the compose file and set `DATABASE_URL` to the managed
-> instance's connection string.
+**Auth secret:** Settings → Safety shows whether the app is using `BETTER_AUTH_SECRET` or `AUTH_SECRET`, and can mint a new random value (writes `.env`, signs you out). You can still set it by hand with `openssl rand -base64 32`.
 
 ---
 
-## 📲 WhatsApp setup
+## Integrations
 
-For `wa_link` / `wa_direct` you need a Meta WhatsApp Business account and an
-approved **template** with two body parameters:
+WhatsApp, Signal, email, and push are configured under **Settings → Integrations**. A channel sends only when it is configured and selected for that draw.
 
-| Param | Content |
-|:--:|:--|
-| `{{1}}` | The giver's name |
-| `{{2}}` | The match's name (`wa_direct`) **or** the reveal URL (`wa_link`) |
+**WhatsApp.** A Meta WhatsApp Business template with the two parameters above. Set the token, phone-number id, template name, and template language in Settings. WhatsApp stays off until the language is saved.
 
-Set `WA_API_TOKEN`, `WA_PHONE_NUMBER_ID`, `WA_TEMPLATE_NAME`,
-`WA_TEMPLATE_LANGUAGE` in `.env`. Reveal-page delivery needs none of this. ✅
+**Signal.** The app links as a secondary device with [`go-signal`](https://github.com/CWBudde/go-signal). The Linux or macOS binary is downloaded into `data/bin/` the first time you click **Link device**. On the phone: **Signal → Settings → Linked devices → Link new device**, then scan the QR. The page shows the QR `go-signal` prints and checks every 2 seconds for a new one. Linking writes a `.linked` marker under `SIGNAL_STORE_DIR` (default `data/signal`). The Node process runs a short `go-signal receive` about every 12 hours so Signal keeps the device. `npm run signal:link` is the same flow from the terminal.
 
----
+**Email.** SMTP sends the message and IMAP reads bounces. Bounce reading stays off until an IMAP host is saved. A blank SMTP port connects as 587 and a blank IMAP port as 993. The `SMTP_*` variables in `.env` turn on organiser verification; invitation mail uses the mailbox saved in Settings.
 
-## ✉️ Email setup (optional)
-
-Powered by [Resend](https://resend.com). When configured, draw results are also
-emailed to participants whose account email is known.
-
-```bash
-RESEND_API_KEY="re_..."
-RESEND_FROM="Secret Santa <santa@your.domain>"   # verified sender
-```
-
-Leave unset to disable email entirely. The admin **Integrations** card shows
-whether it's enabled.
+**Push.** Generate VAPID keys in Settings and save a subject (`mailto:` or `https:`). Push stays off until that subject is saved. Then enable notifications in the Push section.
 
 ---
 
-## 🔔 Push notifications setup (optional)
-
-The app is an installable **PWA** with Web Push. Generate a VAPID key pair once:
-
-```bash
-npx web-push generate-vapid-keys
-```
-
-```bash
-VAPID_PUBLIC_KEY="..."
-NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."   # same value, inlined into the client
-VAPID_PRIVATE_KEY="..."
-VAPID_SUBJECT="mailto:you@example.com"
-```
-
-> ℹ️ `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is baked in at **build time** (it's a
-> Dockerfile build arg). Participants enable notifications from their dashboard.
-
----
-
-## 🛠️ Scripts
+## Scripts
 
 | Script | What it does |
 |:--|:--|
-| `npm run dev` | 🔥 Development server |
-| `npm run build` | 📦 Production build |
-| `npm test` | 🧪 Draw-algorithm unit tests |
-| `npm run db:generate` | 🧬 Generate a Drizzle migration |
-| `npm run db:migrate` | ⬆️ Apply migrations |
-| `npm run db:studio` | 🔍 Open Drizzle Studio |
+| `npm run dev` | Development server |
+| `npm run build` | Production build (`next build --webpack`) |
+| `npm start` | Production server |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest |
+| `npm run db:generate` | Generate a Drizzle migration |
+| `npm run db:migrate` | Apply migrations to the SQLite file |
+| `npm run db:push` | Push schema without a migration file |
+| `npm run db:studio` | Open Drizzle Studio |
+| `npm run signal:link` | Link Signal as a secondary device |
+| `npm run email:art` | Render email banner SVGs into `public/email/` |
+
+Repo rules: [AGENTS.md](AGENTS.md). Architecture, API, and domain reference: [docs/README.md](docs/README.md).
 
 ---
 
-## 🗂️ Structure
+## License
 
-```
-app/                  🧭  routes (auth, dashboard, admin, reveal, api, manifest)
-components/           🧩  UI (shadcn + components)
-lib/                  ⚙️  auth · db/schema · draw · draw-runner · scheduler
-                          whatsapp · email · push · pairings · settings · phone
-instrumentation.ts   ⏰  boots the in-process draw scheduler
-public/              🖼️  PWA service worker + app icon
-drizzle/             🗃️  SQL migrations
-scripts/             📜  database migration runner
-Dockerfile           🐳  standalone production image
-docker-compose.yml   🐳  app + Postgres (Coolify-ready)
-```
-
----
-
-## 📜 Versions
-
-| Branch | What it is |
-|:--:|:--|
-| 🟢 **v2** | This rewrite (Next.js · Better Auth · Drizzle) — current branch |
-| 🟡 **v1** | The original Express prototype (static HTML + JSON) |
-
----
-
-## 🤝 Contributing
-
-Pull requests welcome! If you'd like to enrich the project, open an issue or a
-PR. Any [Ko-Fis](https://ko-fi.com/rodaviva) given would be greatly welcome to allow me to continue to mantain this project development. If you have any questions or issues, feel free to contact me on Discord (prefereble) or via chat in https://chung-jf.me. My Discord nickname is `Rodaviva`. 🎄
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
-
-<div align="center">
-
-### 🎄 Happy Xmas! 🎁
-
-</div>
+MIT — see [LICENSE](LICENSE). The optional Signal sidecar ([go-signal](https://github.com/CWBudde/go-signal)) is AGPL-3.0.

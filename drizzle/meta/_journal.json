@@ -1,47 +1,89 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1780529823255,
-      "tag": "0000_clumsy_sandman",
+      "version": "6",
+      "when": 1792445000000,
+      "tag": "0000_baseline",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "7",
-      "when": 1780567813793,
-      "tag": "0001_organic_layla_miller",
+      "version": "6",
+      "when": 1793094542433,
+      "tag": "0001_noisy_firedrake",
       "breakpoints": true
     },
     {
       "idx": 2,
-      "version": "7",
-      "when": 1780568412377,
-      "tag": "0002_hesitant_squadron_supreme",
+      "version": "6",
+      "when": 1793122817041,
+      "tag": "0002_dusty_stellaris",
       "breakpoints": true
     },
     {
       "idx": 3,
-      "version": "7",
-      "when": 1780569365707,
-      "tag": "0003_ancient_tyger_tiger",
+      "version": "6",
+      "when": 1793139138880,
+      "tag": "0003_lonely_black_widow",
       "breakpoints": true
     },
     {
       "idx": 4,
-      "version": "7",
-      "when": 1780573346479,
-      "tag": "0004_absent_viper",
+      "version": "6",
+      "when": 1793145948053,
+      "tag": "0004_ambiguous_micromax",
       "breakpoints": true
     },
     {
       "idx": 5,
-      "version": "7",
-      "when": 1780573493338,
-      "tag": "0005_brainy_energizer",
+      "version": "6",
+      "when": 1793147571885,
+      "tag": "0005_event_name_ja",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793348660266,
+      "tag": "0006_admin_email_verified",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793610000000,
+      "tag": "0007_budget_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793637700000,
+      "tag": "0008_event_location",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793799000000,
+      "tag": "0009_event_template",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793807595516,
+      "tag": "0010_wishlist_notify_claim",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1793813600000,
+      "tag": "0011_event_automatic_exclusions",
       "breakpoints": true
     }
   ]

@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
 
+import { dirtyFieldClass } from "@/components/ui/dirty-field";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,23 +29,28 @@ type PhoneInputProps = Omit<
   Omit<RPNInput.Props<typeof RPNInput.default>, "onChange"> & {
     /** Fired with the full E.164 value (e.g. "+351912345678") or "". */
     onChange?: (value: RPNInput.Value) => void;
+    dirty?: boolean;
   };
+
+const PhoneDirtyContext = React.createContext(false);
 
 const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
-    ({ className, onChange, ...props }, ref) => (
-      <RPNInput.default
-        ref={ref}
-        className={cn("flex", className)}
-        flagComponent={FlagComponent}
-        countrySelectComponent={CountrySelect}
-        inputComponent={InputComponent}
-        smartCaret={false}
-        // react-phone-number-input emits `undefined` when cleared; normalise to
-        // an empty string so consumers always get a defined value.
-        onChange={(value) => onChange?.(value || ("" as RPNInput.Value))}
-        {...props}
-      />
+    ({ className, onChange, dirty, ...props }, ref) => (
+      <PhoneDirtyContext.Provider value={Boolean(dirty)}>
+        <RPNInput.default
+          ref={ref}
+          className={cn("flex", className)}
+          flagComponent={FlagComponent}
+          countrySelectComponent={CountrySelect}
+          inputComponent={InputComponent}
+          smartCaret={false}
+          // react-phone-number-input emits `undefined` when cleared; normalise to
+          // an empty string so consumers always get a defined value.
+          onChange={(value) => onChange?.(value || ("" as RPNInput.Value))}
+          {...props}
+        />
+      </PhoneDirtyContext.Provider>
     ),
   );
 PhoneInput.displayName = "PhoneInput";
@@ -52,13 +58,20 @@ PhoneInput.displayName = "PhoneInput";
 const InputComponent = React.forwardRef<
   HTMLInputElement,
   React.ComponentProps<"input">
->(({ className, ...props }, ref) => (
-  <Input
-    className={cn("rounded-s-none rounded-e-md", className)}
-    ref={ref}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const dirty = React.useContext(PhoneDirtyContext);
+  return (
+    <Input
+      className={cn(
+        "rounded-s-none rounded-e-md",
+        dirty && dirtyFieldClass,
+        className,
+      )}
+      ref={ref}
+      {...props}
+    />
+  );
+});
 InputComponent.displayName = "InputComponent";
 
 type CountryEntry = { label: string; value?: RPNInput.Country };
@@ -76,13 +89,17 @@ function CountrySelect({
   options: countryList,
   onChange,
 }: CountrySelectProps) {
+  const dirty = React.useContext(PhoneDirtyContext);
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
-          className="flex gap-1 rounded-e-none rounded-s-md border-r-0 px-3 focus:z-10"
+          className={cn(
+            "flex gap-1 rounded-e-none rounded-s-md border-r-0 px-3 focus:z-10",
+            dirty && dirtyFieldClass,
+          )}
           disabled={disabled}
         >
           <FlagComponent
