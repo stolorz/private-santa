@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { clampCropRect, PHOTO_MAX_EDGE, scaleToMaxEdge } from "./photo-process";
+import {
+  clampCropRect,
+  coverMinZoom,
+  downscalePyramid,
+  PHOTO_MAX_EDGE,
+  scaleToMaxEdge,
+} from "./photo-process";
 
 describe("clampCropRect", () => {
   it("rounds a rect that already sits inside the image", () => {
@@ -27,6 +33,52 @@ describe("clampCropRect", () => {
     expect(
       clampCropRect({ x: 4.2, y: 5.1, width: 0.4, height: -3 }, 80, 80),
     ).toEqual({ x: 4, y: 5, width: 1, height: 1 });
+  });
+});
+
+describe("coverMinZoom", () => {
+  it("matches the circle to the shorter side of a square photo", () => {
+    expect(coverMinZoom(70, 200, 200)).toBe(0.35);
+  });
+
+  it("uses the shorter side of a landscape photo", () => {
+    expect(coverMinZoom(70, 400, 100)).toBe(0.7);
+  });
+
+  it("rounds to two decimal places", () => {
+    expect(coverMinZoom(100, 300, 300)).toBe(0.33);
+  });
+
+  it("stays at 1 when the crop or the photo has no size", () => {
+    expect(coverMinZoom(0, 200, 200)).toBe(1);
+    expect(coverMinZoom(-1, 200, 200)).toBe(1);
+    expect(coverMinZoom(70, 0, 200)).toBe(1);
+    expect(coverMinZoom(70, -5, 200)).toBe(1);
+    expect(coverMinZoom(70, 200, 0)).toBe(1);
+  });
+});
+
+describe("downscalePyramid", () => {
+  it("halves until the last step lands on the destination", () => {
+    expect(downscalePyramid(4000, 1200)).toEqual([2000, 1200]);
+  });
+
+  it("jumps straight to the destination when one halving is enough", () => {
+    expect(downscalePyramid(2000, 1200)).toEqual([1200]);
+  });
+
+  it("returns no steps when the source is already within the limit", () => {
+    expect(downscalePyramid(800, 1200)).toEqual([]);
+    expect(downscalePyramid(PHOTO_MAX_EDGE, PHOTO_MAX_EDGE)).toEqual([]);
+  });
+
+  it("returns no steps for a non-positive destination", () => {
+    expect(downscalePyramid(10, 0)).toEqual([]);
+    expect(downscalePyramid(10, -1)).toEqual([]);
+  });
+
+  it("stops if halving would not shrink the edge", () => {
+    expect(downscalePyramid(1, 0.4)).toEqual([0.4]);
   });
 });
 

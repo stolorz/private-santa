@@ -94,8 +94,11 @@ missing ones.
 `name-case-inputs.tsx`, `gender-select.tsx`, `language-select.tsx`,
 `phone-input.tsx` (wraps `components/reui/phone-input.tsx`),
 `existing-person-picker.tsx`, `photo-cropper.tsx` (`react-easy-crop`).
-The cropper drags and zooms from 1× to 6× inside a round frame inset
-from the stage, and saves a square JPEG up to 1200px.
+The cropper drags and zooms inside a round frame inset from the stage.
+The farthest zoom-out keeps the circle on the photo (its diameter matches
+the shorter side). Zoom can then go in to 6× from that floor. A crop
+larger than 1200px is downscaled with high-quality resampling and saved
+as a square JPEG.
 
 ### `components/layout/`
 

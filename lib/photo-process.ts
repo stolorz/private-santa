@@ -15,6 +15,35 @@ export function clampCropRect(
   return { x, y, width, height };
 }
 
+/** Farthest zoom-out at which the crop circle still covers the photo. */
+export function coverMinZoom(
+  cropEdge: number,
+  mediaWidth: number,
+  mediaHeight: number,
+): number {
+  const shorter = Math.min(mediaWidth, mediaHeight);
+  if (cropEdge <= 0 || shorter <= 0) return 1;
+  return Math.round((cropEdge / shorter) * 100) / 100;
+}
+
+/**
+ * Edge lengths for a halving downscale, ending at `destEdge`.
+ * Empty when the source is already within the limit.
+ */
+export function downscalePyramid(srcEdge: number, destEdge: number): number[] {
+  if (srcEdge <= destEdge || destEdge <= 0) return [];
+  const steps: number[] = [];
+  let current = srcEdge;
+  while (Math.round(current / 2) > destEdge) {
+    const next = Math.round(current / 2);
+    if (next >= current) break;
+    current = next;
+    steps.push(current);
+  }
+  steps.push(destEdge);
+  return steps;
+}
+
 export function scaleToMaxEdge(
   width: number,
   height: number,

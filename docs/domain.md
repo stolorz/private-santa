@@ -336,7 +336,7 @@ another series, or a later `occursOn`. Newest year first. Invalid
 | File | Role |
 |---|---|
 | `lib/photo.ts` | `UPLOADS_DIR` or `{sqliteDir}/uploads`. Filename 48 hex + ext. Max 2 MB |
-| `lib/photo-process.ts` | Scale longest edge ≤ 1200. `clampCropRect` keeps a crop inside the source image |
+| `lib/photo-process.ts` | Scale longest edge ≤ 1200 (`scaleToMaxEdge`, `downscalePyramid` for the halving steps). `coverMinZoom` is the farthest zoom-out that still covers the circle. `clampCropRect` keeps a crop inside the source image |
 | `lib/budget.ts` | `amount` / `zero` / `unlimited`. EUR/PLN/JPY extras, humanize, guest-facing snapshot. `formatBudget` prints the amount in the template language (Polish `100 zł` / `1 000 ¥`, English `€100` / `PLN 100` / `¥1,200`, Japanese `€100 (約3,000円)` / `100 PLN (約4,000円)` / `1,200円`, German `1.000,00 PLN`, Spanish space thousands) |
 | `lib/fx.ts` | NBP Table A, 24h TTL, 3s timeout, PLN pivot, plausibility bands |
 
