@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  authClientErrorMessage,
   isUnverifiedEmailError,
   organiserNeedsEmailVerification,
   UNVERIFIED_EMAIL_LOGIN_MESSAGE,
@@ -42,5 +43,29 @@ describe("isUnverifiedEmailError", () => {
     ).toBe(false);
     expect(isUnverifiedEmailError({ code: "OTHER" })).toBe(false);
     expect(UNVERIFIED_EMAIL_LOGIN_MESSAGE).toMatch(/email/);
+  });
+});
+
+describe("authClientErrorMessage", () => {
+  it("prefers a message, then a string error body, then the fallback", () => {
+    expect(authClientErrorMessage(null, "Fallback.")).toBe("Fallback.");
+    expect(authClientErrorMessage(undefined, "Fallback.")).toBe("Fallback.");
+    expect(
+      authClientErrorMessage(
+        { message: "Invalid token", error: "ignored" },
+        "Fallback.",
+      ),
+    ).toBe("Invalid token");
+    expect(
+      authClientErrorMessage(
+        { error: "Too many requests. Try again later." },
+        "Fallback.",
+      ),
+    ).toBe("Too many requests. Try again later.");
+    expect(authClientErrorMessage({ message: "", error: 429 }, "Fallback.")).toBe(
+      "Fallback.",
+    );
+    expect(authClientErrorMessage({ error: "" }, "Fallback.")).toBe("Fallback.");
+    expect(authClientErrorMessage({}, "Fallback.")).toBe("Fallback.");
   });
 });

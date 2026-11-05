@@ -103,8 +103,9 @@ Do not break these. Tests encode most of them.
     An edition save cannot leave the choice unset. The draw may run before
     a choice exists; invitations cannot. WhatsApp still sends only the
     name and link.
-18. **Rate limits** (in-memory, one Node process). Sign-in 5 / 15 min / IP;
-    signup 5 / hour / IP; reveal POSTs 120 / 5 min / IP. No `middleware.ts`.
+18. **Rate limits** (in-memory, one Node process). Sign-in and password-reset
+    requests share 5 / 15 min / IP; signup 5 / hour / IP; reveal POSTs
+    120 / 5 min / IP. Setting a new password is not limited. No `middleware.ts`.
     Multi-process deploys would need a shared store.
 19. **Location gates saves and invitations.** `location` is the place name;
     `locationGdzie` is the Polish phrase with its own preposition

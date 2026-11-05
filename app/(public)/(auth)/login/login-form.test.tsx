@@ -39,6 +39,13 @@ describe("LoginForm", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it("links to the forgot-password page", () => {
+    render(<LoginForm />);
+    expect(
+      screen.getByRole("link", { name: "Forgot password?" }).getAttribute("href"),
+    ).toBe("/login/forgot");
+  });
+
   it("shows the sign-in error message", async () => {
     signInEmail.mockResolvedValue({
       error: { message: "Invalid email or password" },

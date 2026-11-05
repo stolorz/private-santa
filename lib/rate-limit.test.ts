@@ -1,24 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   consumeRateLimit,
-  isAuthSignInPath,
+  isAuthRateLimitedPath,
   resetRateLimit,
   setRateLimitNow,
 } from "@/lib/rate-limit";
 
-describe("isAuthSignInPath", () => {
-  it("matches sign-in with or without a basePath prefix", () => {
-    expect(isAuthSignInPath("/api/auth/sign-in/email")).toBe(true);
+describe("isAuthRateLimitedPath", () => {
+  it("matches sign-in and password-reset requests, with or without a basePath", () => {
+    expect(isAuthRateLimitedPath("/api/auth/sign-in/email")).toBe(true);
     expect(
-      isAuthSignInPath("/your-prefix/api/auth/sign-in/email"),
+      isAuthRateLimitedPath("/your-prefix/api/auth/sign-in/email"),
     ).toBe(true);
-    expect(isAuthSignInPath("/api/auth/sign-in")).toBe(true);
+    expect(isAuthRateLimitedPath("/api/auth/sign-in")).toBe(true);
+    expect(isAuthRateLimitedPath("/api/auth/request-password-reset")).toBe(
+      true,
+    );
+    expect(
+      isAuthRateLimitedPath("/your-prefix/api/auth/request-password-reset"),
+    ).toBe(true);
   });
 
-  it("ignores session and other auth paths", () => {
-    expect(isAuthSignInPath("/api/auth/session")).toBe(false);
-    expect(isAuthSignInPath("/api/auth/sign-up/email")).toBe(false);
-    expect(isAuthSignInPath("/api/signup")).toBe(false);
+  it("ignores session, sign-up, and the password-set endpoint", () => {
+    expect(isAuthRateLimitedPath("/api/auth/session")).toBe(false);
+    expect(isAuthRateLimitedPath("/api/auth/sign-up/email")).toBe(false);
+    expect(isAuthRateLimitedPath("/api/signup")).toBe(false);
+    expect(isAuthRateLimitedPath("/api/auth/reset-password")).toBe(false);
   });
 });
 

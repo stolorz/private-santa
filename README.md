@@ -72,7 +72,7 @@ Production: `npm run build` then `npm start`. Keep the Node process running so S
 
 `NEXT_PUBLIC_APP_URL` is baked into the client at **build time** — set it before `npm run build` so guest links use the right domain.
 
-When `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` + `SMTP_FROM` are set in `.env`, signup requires email verification before login. That message is sent with the mailbox from **Settings → Integrations**. Create a series from **/events**.
+When `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` + `SMTP_FROM` are set in `.env`, signup requires email verification before login. That message is sent with the mailbox from **Settings → Integrations**. **Forgot password?** on the log-in page uses the same mailbox. The link expires in one hour; after choosing a new password, log in again. Create a series from **/events**.
 
 **Auth secret:** Settings → Safety shows whether the app is using `BETTER_AUTH_SECRET` or `AUTH_SECRET`, and can mint a new random value (writes `.env`, signs you out). You can still set it by hand with `openssl rand -base64 32`.
 
@@ -86,7 +86,7 @@ WhatsApp, Signal, email, and push are configured under **Settings → Integratio
 
 **Signal.** The app links as a secondary device with [`go-signal`](https://github.com/CWBudde/go-signal). The Linux or macOS binary is downloaded into `data/bin/` the first time you click **Link device**. On the phone: **Signal → Settings → Linked devices → Link new device**, then scan the QR. The page shows the QR `go-signal` prints and checks every 2 seconds for a new one. Linking writes a `.linked` marker under `SIGNAL_STORE_DIR` (default `data/signal`). The Node process runs a short `go-signal receive` about every 12 hours so Signal keeps the device. `npm run signal:link` is the same flow from the terminal.
 
-**Email.** SMTP sends the message and IMAP reads bounces. Bounce reading stays off until an IMAP host is saved. A blank SMTP port connects as 587 and a blank IMAP port as 993. The `SMTP_*` variables in `.env` turn on organiser verification; invitation mail uses the mailbox saved in Settings.
+**Email.** SMTP sends the message and IMAP reads bounces. Bounce reading stays off until an IMAP host is saved. A blank SMTP port connects as 587 and a blank IMAP port as 993. The `SMTP_*` variables in `.env` turn on organiser verification; invitation mail and password-reset mail use the mailbox saved in Settings.
 
 **Push.** Generate VAPID keys in Settings and save a subject (`mailto:` or `https:`). Push stays off until that subject is saved. Then enable notifications in the Push section.
 

@@ -30,9 +30,15 @@ function store(): Store {
   }));
 }
 
-/** True for Better Auth email sign-in, including a `basePath` prefix. */
-export function isAuthSignInPath(pathname: string): boolean {
-  return /\/api\/auth\/sign-in(?:\/|$)/.test(pathname);
+/**
+ * True for Better Auth email sign-in and password-reset requests,
+ * including a `basePath` prefix. Both share the `auth` bucket.
+ * Setting the new password (`/reset-password`) is not included.
+ */
+export function isAuthRateLimitedPath(pathname: string): boolean {
+  return /\/api\/auth\/(?:sign-in|request-password-reset)(?:\/|$)/.test(
+    pathname,
+  );
 }
 
 /**

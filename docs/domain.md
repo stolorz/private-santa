@@ -347,15 +347,15 @@ Test hooks: `setFxFetch`, `setFxNow`, `resetFxInflight`.
 
 | File | Role |
 |---|---|
-| `lib/auth.ts` | Better Auth config. Email verification on when env SMTP is complete (boot-time switch; sending uses Settings mailbox) |
+| `lib/auth.ts` | Better Auth config. Email verification on when env SMTP is complete (boot-time switch; sending uses Settings mailbox). Password reset sends through that mailbox and revokes sessions |
 | `lib/auth-secret.ts` | Status of `BETTER_AUTH_SECRET` / `AUTH_SECRET`; rotate writes `.env`, patches the live Better Auth snapshot, deletes `session` rows. Never returns the secret. Tests set `AUTH_ENV_PATH` |
 | `lib/auth-secret-types.ts` | `AuthSecretStatus` (safe for client import) |
 | `lib/auth-hooks.ts` | `user.create` before/after (`ADMIN_EMAIL` lock, first-user reject, `insertOrganiserPerson`) |
 | `lib/auth-role.ts` | `organiserSignupAllowed` |
-| `lib/auth-email.ts` | Env SMTP check for verification-required, unverified-login copy (client-safe) |
-| `lib/auth-email-send.ts` | Organiser verification mail via `sendTransactionalEmail` (Settings mailbox); Better Auth adapter `sendBetterAuthVerificationEmail` |
-| `lib/rate-limit.ts` | In-memory sliding window. Buckets `auth` / `signup` / `guest`. Test hooks: `setRateLimitNow`, `resetRateLimit` |
-| `lib/auth-client.ts` | Browser client. Origin = `window.location.origin` |
+| `lib/auth-email.ts` | Env SMTP check for verification-required, unverified-login copy, auth client error text (client-safe) |
+| `lib/auth-email-send.ts` | Organiser verification and password-reset mail via `sendTransactionalEmail` (Settings mailbox); Better Auth adapters `sendBetterAuthVerificationEmail` and `sendBetterAuthResetPassword` |
+| `lib/rate-limit.ts` | In-memory sliding window. Buckets `auth` / `signup` / `guest`. Sign-in and `request-password-reset` share `auth` (5 / 15 min / IP). Test hooks: `setRateLimitNow`, `resetRateLimit` |
+| `lib/auth-client.ts` | Browser client. Origin = `window.location.origin`. Exports sign-in and password reset |
 | `lib/session.ts` | `getCurrentUser`, `requireAdminPage`, `hasRegisteredUser` |
 | `lib/signup.ts` | `signupFirstOrganiser` |
 | `lib/signup-pending.ts` | Process singleton for the organiser name, phone, and email until `insertOrganiserPerson` |

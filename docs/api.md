@@ -17,8 +17,9 @@ HTTP helpers (`lib/http.ts`): 400 `badRequest`, 403 `forbidden`, 404
 `notFound`, 409 `conflict`, 429 `tooManyRequests`, 500 `serverError`, 503
 `unavailable`. **409** means “not configured / wrong state” for
 integrations. **429** is `{ error: "Too many requests. Try again later." }`
-plus `Retry-After`. Sign-in, signup, and reveal POSTs are limited
-(`lib/rate-limit.ts`).
+plus `Retry-After`. Sign-in and password-reset requests share 5 / 15 min / IP;
+signup is 5 / hour / IP; reveal POSTs are 120 / 5 min / IP
+(`lib/rate-limit.ts`). Setting a new password is not limited.
 
 ## Auth and signup
 
@@ -28,8 +29,13 @@ plus `Retry-After`. Sign-in, signup, and reveal POSTs are limited
 **Auth:** Better Auth (cookie session). **Does not use `route()`.**  
 Delegates to `toNextJsHandler(auth)`. Rewrites `request.url` with
 `withAuthPath` so Better Auth still matches `/your-prefix/api/auth`
-after Next strips `basePath`. **POST** `/sign-in` is rate-limited (5 / 15 min
-/ IP). Other auth paths are not.
+after Next strips `basePath`. **POST** `/sign-in` and **POST**
+`/request-password-reset` share one rate limit (5 / 15 min / IP). **POST**
+`/reset-password` is not limited. Other auth paths are not. Password reset
+mail uses the Settings mailbox. The email link is Better Auth's
+`/reset-password/:token` redirect, which lands on `/login/reset?token=`.
+An invalid or expired token redirects to `/login/reset?error=INVALID_TOKEN`.
+Unknown addresses get the same success response as known ones.
 
 ### `POST /api/signup`
 

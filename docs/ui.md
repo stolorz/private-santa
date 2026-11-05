@@ -133,7 +133,7 @@ input, label, popover, select, switch, tooltip, command, plus app helpers
 | `/settings/people` | `PeopleSettings` |
 | `/settings/safety` | `SafetySettings` |
 | `/{token}` | `ReceiverReveal` (own wishlist as children; previous years after unwrap). Invalid token: JSON reference not-found copy |
-| `/login` `/signup` | `CenteredCard` + form (signup shows check-email when `needsVerification`) |
+| `/login` `/login/forgot` `/login/reset` `/signup` | `CenteredCard` + form. Forgot password always shows check-email after submit. Reset reads `token` / `error` and returns to log in after a new password. Signup shows check-email when `needsVerification` |
 
 ## Client data rules
 

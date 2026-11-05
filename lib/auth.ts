@@ -4,7 +4,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin as adminPlugin } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { organiserNeedsEmailVerification } from "@/lib/auth-email";
-import { sendBetterAuthVerificationEmail } from "@/lib/auth-email-send";
+import {
+  sendBetterAuthResetPassword,
+  sendBetterAuthVerificationEmail,
+} from "@/lib/auth-email-send";
 import { beforeCreateUser, afterCreateUser } from "@/lib/auth-hooks";
 import { db, schema } from "@/lib/db";
 import { authBasePath, authTrustedOrigins, publicOrigin } from "@/lib/public-path";
@@ -25,6 +28,8 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: organiserNeedsEmailVerification(),
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: sendBetterAuthResetPassword,
   },
   emailVerification: {
     sendOnSignUp: true,

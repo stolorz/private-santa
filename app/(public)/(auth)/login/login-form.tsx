@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 import {
@@ -66,6 +67,14 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
+        <p className="text-right text-sm">
+          <Link
+            href="/login/forgot"
+            className="text-muted-foreground underline"
+          >
+            Forgot password?
+          </Link>
+        </p>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" size="xl" disabled={busy}>
           {busy ? "Logging in…" : "Log in"}

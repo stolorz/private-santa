@@ -77,14 +77,41 @@ describe("/api/auth/[...all]", () => {
     expect(handlePost).toHaveBeenCalledTimes(1);
   });
 
-  it("does not rate-limit other POST auth paths", async () => {
+  it("returns 429 for a password-reset request when the auth limiter blocks", async () => {
     vi.spyOn(rateLimit, "consumeRateLimit").mockReturnValue({
       ok: false,
       retryAfterSec: 42,
     });
-    const req = new Request("http://localhost/api/auth/ok", { method: "POST" });
+    const req = new Request(
+      "http://localhost/api/auth/request-password-reset",
+      {
+        method: "POST",
+        headers: { "x-forwarded-for": "203.0.113.9" },
+      },
+    );
     const res = await POST(req);
+    expect(res.status).toBe(429);
+    expect(handlePost).not.toHaveBeenCalled();
+  });
+
+  it("does not rate-limit setting a new password or other auth paths", async () => {
+    vi.spyOn(rateLimit, "consumeRateLimit").mockReturnValue({
+      ok: false,
+      retryAfterSec: 42,
+    });
+    const reset = new Request("http://localhost/api/auth/reset-password", {
+      method: "POST",
+    });
+    const res = await POST(reset);
     expect(res.status).toBe(200);
+    expect(handlePost).toHaveBeenCalledTimes(1);
+
+    handlePost.mockClear();
+    const other = new Request("http://localhost/api/auth/ok", {
+      method: "POST",
+    });
+    const otherRes = await POST(other);
+    expect(otherRes.status).toBe(200);
     expect(handlePost).toHaveBeenCalledTimes(1);
   });
 });

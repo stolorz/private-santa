@@ -12,7 +12,7 @@ Parentheses never appear in URLs. `app/(admin)/events/page.tsx` is `/events`.
 | Group | URL prefix | Chrome |
 |---|---|---|
 | `app/(public)` | none | Winter scene / centered card, no organiser nav |
-| `app/(public)/(auth)` | none | Nested group only. Pages are still `/login` and `/signup` |
+| `app/(public)/(auth)` | none | Nested group only. Pages are still `/login`, `/login/forgot`, `/login/reset`, and `/signup` |
 | `app/(admin)` | none | `FestiveAtmosphere` snow overlay. **Does not check auth.** |
 | `app/api` | `/api` | JSON |
 
@@ -23,7 +23,9 @@ Root layout (`app/layout.tsx`): fonts, OG metadata, `JapaneseFontLoader`. No nav
 | URL | File | Auth |
 |---|---|---|
 | `/` | `app/(public)/page.tsx` | Public. Logged-in → `/events`. CTA is signup if no organiser exists, else login |
-| `/login` | `app/(public)/(auth)/login/page.tsx` | Public. Success → `/events` |
+| `/login` | `app/(public)/(auth)/login/page.tsx` | Public. Success → `/events`. Links to forgot password |
+| `/login/forgot` | `app/(public)/(auth)/login/forgot/page.tsx` | Public. Always shows check-email after a request |
+| `/login/reset` | `app/(public)/(auth)/login/reset/page.tsx` | Public. `?token=` from the email redirect, or `?error=INVALID_TOKEN`. Success returns to `/login` |
 | `/signup` | `app/(public)/(auth)/signup/page.tsx` | Public, first user only. Form POSTs `/api/signup` (not Better Auth `signUp`) |
 | `/{token}` | `app/(public)/[token]/page.tsx` | Token. Valid: edition templates, localized OG in the giver's language (no names), `robots: noindex`. Invalid: JSON reference copy, site OG, not Next.js 404 |
 
@@ -68,11 +70,13 @@ form never hydrates and submits as `GET /login?`.
 
 Better Auth (`lib/auth.ts`): email/password. `requireEmailVerification` is
 on only when env SMTP is complete (`SMTP_HOST` + `SMTP_USER` + `SMTP_PASS`
-+ `SMTP_FROM`) — a boot-time switch, not the sending mailbox. Verification
-and invitation mail use Settings → Integrations. Drizzle SQLite adapter +
-admin plugin + `nextCookies()`
-last. `baseURL` is origin-only (`publicOrigin()`) so Better Auth still appends
-`/api/auth` when the app is under a `basePath`.
++ `SMTP_FROM`) — a boot-time switch, not the sending mailbox. Verification,
+password reset, and invitation mail use Settings → Integrations. A reset
+link lasts one hour (Better Auth's default). Choosing a new password
+revokes existing sessions and does not sign the organiser in. Drizzle SQLite
+adapter + admin plugin + `nextCookies()` last. `baseURL` is origin-only
+(`publicOrigin()`) so Better Auth still appends `/api/auth` when the app is
+under a `basePath`.
 
 `user.create.before` rejects anyone after the first user, and rejects the
 first user when `ADMIN_EMAIL` is set and the address does not match (or when
