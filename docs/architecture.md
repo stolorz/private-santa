@@ -26,7 +26,7 @@ Root layout (`app/layout.tsx`): fonts, OG metadata, `JapaneseFontLoader`. No nav
 | `/login` | `app/(public)/(auth)/login/page.tsx` | Public. Success → `/events`. Links to forgot password |
 | `/login/forgot` | `app/(public)/(auth)/login/forgot/page.tsx` | Public. Always shows check-email after a request |
 | `/login/reset` | `app/(public)/(auth)/login/reset/page.tsx` | Public. `?token=` from the email redirect, or `?error=INVALID_TOKEN`. Success returns to `/login` |
-| `/signup` | `app/(public)/(auth)/signup/page.tsx` | Public, first user only. Form POSTs `/api/signup` (not Better Auth `signUp`) |
+| `/signup` | `app/(public)/(auth)/signup/page.tsx` | Public, first user only. Rendered per request so the organiser check uses the server database. Form POSTs `/api/signup` (not Better Auth `signUp`) |
 | `/{token}` | `app/(public)/[token]/page.tsx` | Token. Valid: edition templates, localized OG in the giver's language (no names), `robots: noindex`. Invalid: JSON reference copy, site OG, not Next.js 404 |
 
 Guest tokens are 6-char `[0-9a-z]`. Minting skips reserved first
