@@ -182,7 +182,7 @@ function PreviewBody({
     return (
       <div className="mx-auto w-full max-w-sm rounded-2xl bg-[#1f3550] p-4 text-[#f6f9fc] shadow-sm">
         <p className="text-xs tracking-wide text-[#a9bdd2] uppercase">
-          Secret Santa
+          Private Santa
         </p>
         <p className="mt-1 font-semibold">{note.title}</p>
         <p className="mt-1 text-sm leading-relaxed text-[#e6eef6]">{note.body}</p>

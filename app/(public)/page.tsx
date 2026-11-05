@@ -14,7 +14,7 @@ export default async function Home() {
 
   return (
     <WinterPage
-      title="Secret Santa"
+      title="Private Santa"
       subtitle="Draw names, share wishlists, keep the secret."
       brand={false}
     >

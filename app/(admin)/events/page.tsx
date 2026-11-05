@@ -23,7 +23,7 @@ export default async function EventsPage() {
           <SignOutButton />
           <Gift className="size-6 shrink-0 text-berry" />
           <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-primary">
-            {admin ? "Your events" : "Secret Santa"}
+            {admin ? "Your events" : "Private Santa"}
           </h1>
         </div>
         {admin ? (

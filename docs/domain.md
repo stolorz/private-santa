@@ -203,19 +203,23 @@ channels can demote recipients to unreachable.
 | `lib/whatsapp.ts` | Graph API v19.0. `{{1}}` name, `{{2}}` URL |
 | `lib/signal.ts` | Sequential send. Recipients: E.164, ACI UUID, or `self` |
 | `lib/signal-store.ts` | `SIGNAL_STORE_DIR`. Configured iff `.linked` exists |
-| `lib/signal-link.ts` | In-process QR linking |
-| `lib/go-signal.ts` | Download/verify go-signal 0.3.0, process mutex, exit 3 = unlinked |
+| `lib/signal-link.ts` | In-process QR linking. The Settings page shows the QR and checks every 2 seconds. `npm run signal:link` is the same flow from the terminal |
+| `lib/go-signal.ts` | Download/verify go-signal 0.3.0 into `data/bin/` on first link (Linux or macOS), process mutex, exit 3 = unlinked |
 | `lib/email.ts` | Nodemailer. Mailbox from Settings, not env. Draw mail: `X-Santa-Token` + Message-ID `<santa.{token}@{domain}>`. Transporter cached per mailbox. Test mail: empty batch is `ok: false` with an indeterminate error. Test hook: `resetMailClient` |
-| `lib/email-bounce.ts` | IMAP INBOX poll. Runs only when an IMAP host is stored. DSN parse. UID cursor in `app_setting`. Never throws |
+| `lib/email-bounce.ts` | IMAP INBOX poll. Runs only when an IMAP host is stored. DSN parse. UID cursor in `app_setting`. Marks the matching assignment; the Draw tab guest links show the failure. Never throws |
 | `lib/push.ts` | web-push + VAPID. Sends only when keys and a subject are stored. `pushToAdmins`. Dead endpoints 404/410 deleted |
 
-Signal has no Cloud API; this app is a **linked secondary device**. Idle
-~30 days → unlinked. Background job pings twice a day. Guest activity
-push kinds: opened / revealed / wishlist_added / wishlist_read — **never
-include wishlist item text**. Wishlist-change notices to the giver use
-Signal and email only (`lib/wishlist-notify.ts`): one claim per unseen
-stretch, both channels when they can reach that santa, no invitation
-flags or `invitation_send` rows. WhatsApp is unchanged.
+Signal has no Cloud API; this app is a **linked secondary device**. The
+first **Link device** downloads the binary into `data/bin/`. On the phone:
+**Signal → Settings → Linked devices → Link new device**, then scan the QR.
+Linking writes a `.linked` marker under `SIGNAL_STORE_DIR` (default
+`data/signal`). Idle ~30 days → unlinked. Background job pings twice a day.
+
+Guest activity push kinds: opened / revealed / wishlist_added /
+wishlist_read — **never include wishlist item text**. Wishlist-change
+notices to the giver use Signal and email only (`lib/wishlist-notify.ts`):
+one claim per unseen stretch, both channels when they can reach that
+santa, no invitation flags or `invitation_send` rows. WhatsApp is unchanged.
 
 ## Templates
 

@@ -138,7 +138,7 @@ export async function startSignalLink(): Promise<{
   s.cancelled = false;
   s.accountNumber = null;
 
-  const deviceName = process.env.SIGNAL_DEVICE_NAME ?? "Secret Santa";
+  const deviceName = process.env.SIGNAL_DEVICE_NAME ?? "Private Santa";
 
   try {
     const session = await startGoSignalLink(

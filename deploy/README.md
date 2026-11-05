@@ -28,6 +28,13 @@ Typical production:
 
 **Never overwrite `data/` or `.env` when syncing.**
 
+## Backup
+
+Copy the SQLite file (`SQLITE_PATH`, default `data/santa.sqlite`), guest
+photos in `data/uploads` (or `UPLOADS_DIR`), and, when Signal is linked,
+`SIGNAL_STORE_DIR` (default `data/signal`). Do not overwrite these when
+syncing code.
+
 ## Sync
 
 From the laptop repository (adjust `user@host` and the remote path):

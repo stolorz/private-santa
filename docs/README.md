@@ -1,10 +1,12 @@
-# Secret Santa — code reference
+# Private Santa — code reference
 
-How the app is structured. Product features and local setup: [README.md](../README.md).
+How the app is structured. Product features: [README.md](../README.md).
+Local setup: [setup.md](setup.md).
 Rules for agents (invariants, coverage, deploy): [AGENTS.md](../AGENTS.md).
 
 | Doc | Read when you need |
 |---|---|
+| [setup.md](setup.md) | Run it locally: env, backup, integrations, scripts |
 | [architecture.md](architecture.md) | Routes, auth, guest vs organiser flows, `basePath` |
 | [data-model.md](data-model.md) | Tables, uniqueness, person vs guest, codes vs tokens |
 | [api.md](api.md) | Every HTTP handler |

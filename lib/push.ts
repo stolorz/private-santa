@@ -67,9 +67,9 @@ const GUEST_ACTIVITY_TEMPLATES: Record<
   },
 };
 
-export const PUSH_TEST_TITLE = "Secret Santa";
+export const PUSH_TEST_TITLE = "Private Santa";
 export const PUSH_TEST_BODY =
-  "Secret Santa test: Web Push is configured and sending.";
+  "Private Santa test: Web Push is configured and sending.";
 
 async function deliverToSubscriptions(
   subs: (typeof schema.pushSubscription.$inferSelect)[],

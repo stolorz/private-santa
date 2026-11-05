@@ -21,7 +21,7 @@ function broadcastPush(payload) {
 }
 
 self.addEventListener("push", (event) => {
-  let data = { title: "Secret Santa", body: "", url: "/", test: false };
+  let data = { title: "Private Santa", body: "", url: "/", test: false };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {

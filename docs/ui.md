@@ -22,7 +22,7 @@ view types.
 | `exclusions-tab.tsx` | Automatic exclusions (self-draw / past pairings, saved on the edition) plus forbidden pairs; `pair-picker.tsx` |
 | `draw-tab.tsx` | Run / inspect + guest links; uses the edition automatic exclusions; `draw-confirm-dialog.tsx`. Current draw has an Export CSV link (`draw_results_YYYY.csv`, giver and receiver) |
 | `delivery-tab.tsx` | Channel switches + `delivery/send-panel.tsx` |
-| `guest-reveal-links.tsx` | Per-guest copy/status (Draw tab). The copy control stays inactive, with a tooltip and no URL, while missing gender, Polish cases, event translations, the event location, or a configured email/Signal template would block invitation send. Local remove/delivery overlays survive a stale `links` refresh |
+| `guest-reveal-links.tsx` | Per-guest copy/status (Draw tab). The copy control stays inactive, with a tooltip and no URL, while missing gender, Polish cases, event translations, the event location, or a configured email/Signal template would block invitation send. Local remove/delivery overlays survive a stale `links` refresh. An IMAP bounce shows as a failed email on that guest |
 | `is-popper-open.ts` | Ignore outside-click while a popover is open |
 
 ### `components/guests/`
@@ -62,7 +62,9 @@ text is not saved. An empty list shows only the add field. `previous-years.tsx` 
 | `template-error-count.tsx` | Saved problem-line total for the Templates tab. The open editor publishes a draft override and clears it on leave |
 | `safety-settings.tsx` | Auth secret status + rotate (never shows the secret) |
 | `integrations-settings.tsx` | Orchestrates channel forms. Local view after save; does not copy RSC `initial` back |
-| `integrations/{whatsapp,signal,email,push}-form.tsx` | Per-channel config + test send. Apply the PUT body; do not sync from parent props |
+| `integrations/signal-form.tsx` | Link device and test send. Shows the QR `go-signal` prints and checks every 2 seconds for a new one |
+| `integrations/push-form.tsx` | VAPID keys, subject, and test send. Push stays off until the subject is saved; then enable notifications in the Push section. Apply the PUT body; do not sync from parent props |
+| `integrations/{whatsapp,email}-form.tsx` | Per-channel config + test send. Apply the PUT body; do not sync from parent props |
 | `collapsible-section.tsx` | Expand/collapse chrome (templates + integrations). `forceOpen` keeps a section expanded |
 | `integrations/integration-section.tsx` | Shared section chrome |
 | `integrations/test-result.tsx` | Last test outcome |
@@ -87,7 +89,7 @@ conversion. Typing 0 there does not save. Location has two inputs, Place
 (`Katowice`) and Polish (gdzie?) (`w Katowicach`), both required; Save stays
 disabled, the empty inputs are marked invalid, and the form names the
 missing ones.
-`push-toggle.tsx` — organiser Web Push subscribe (also used from settings).
+`push-toggle.tsx` — organiser Web Push subscribe (also used from settings). Enable notifications here after a VAPID subject is saved.
 
 ### `components/inputs/`
 

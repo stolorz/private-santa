@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WhatsApp Secret Santa",
-    short_name: "Secret Santa",
+    name: "Private Santa",
+    short_name: "Private Santa",
     description:
-      "Run a secret santa with exclusions, wishlists and WhatsApp delivery.",
+      "Run a private Secret Santa with exclusions, wishlists, and a link for each guest.",
     start_url: "/events",
     display: "standalone",
     background_color: "#eef3f8",

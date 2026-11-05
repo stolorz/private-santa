@@ -13,9 +13,9 @@ export interface OgSettings {
 }
 
 export const OG_DEFAULTS: OgSettings = {
-  title: "WhatsApp Secret Santa",
+  title: "Private Santa",
   description:
-    "Run a secret santa with exclusions, wishlists and WhatsApp delivery.",
+    "Run a private Secret Santa with exclusions, wishlists, and a link for each guest.",
   icon: "",
   banner: "",
 };

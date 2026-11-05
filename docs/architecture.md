@@ -113,8 +113,9 @@ API 401 vs 403: anonymous → 401; signed-in non-admin → 403.
                             /settings/{integrations,templates,people,safety}
 ```
 
-Draw mints a 6-char `revealToken` per assignment. Delivery builds
-`guestPortalUrl` → `{origin}{basePath}/{token}`.
+Draw mints a 6-char `revealToken` per assignment. The organiser starts
+the draw from the edition admin. There is no schedule and no public
+reveal date. Delivery builds `guestPortalUrl` → `{origin}{basePath}/{token}`.
 
 ### Guest
 

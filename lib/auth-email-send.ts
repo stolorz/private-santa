@@ -7,7 +7,7 @@ export async function sendOrganiserVerificationEmail(input: {
 }): Promise<void> {
   const result = await sendTransactionalEmail({
     to: input.to,
-    subject: "Confirm your Secret Santa organiser account",
+    subject: "Confirm your Private Santa organiser account",
     text: `Open this link to confirm your organiser account:\n\n${input.url}\n`,
   });
   if (!result.ok) {
@@ -29,7 +29,7 @@ export async function sendOrganiserResetPasswordEmail(input: {
 }): Promise<void> {
   const result = await sendTransactionalEmail({
     to: input.to,
-    subject: "Reset your Secret Santa organiser password",
+    subject: "Reset your Private Santa organiser password",
     text: `Open this link to choose a new password. It expires in one hour:\n\n${input.url}\n\nIf you did not ask for this, you can ignore this email.\n`,
   });
   if (!result.ok) {

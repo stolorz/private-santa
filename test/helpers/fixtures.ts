@@ -342,7 +342,7 @@ export function makeEventTemplate(
 export function makeAppSetting(overrides: Partial<AppSetting> = {}): AppSetting {
   return {
     key: "og.title",
-    value: "WhatsApp Secret Santa",
+    value: "Private Santa",
     updatedAt: FIXTURE_NOW,
     ...overrides,
   };

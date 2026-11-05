@@ -72,7 +72,7 @@ $response = curl_exec($ch);
 if ($response === false) {
     header('HTTP/1.1 502 Bad Gateway');
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'Secret Santa is not running';
+    echo 'Private Santa is not running';
     exit;
 }
 

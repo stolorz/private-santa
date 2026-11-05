@@ -93,7 +93,7 @@ export function WinterPage({
         {brand ? (
           <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center gap-2 px-5 pt-3 font-heading text-sm font-medium text-foreground sm:px-8 sm:pt-5 sm:text-base lg:pt-6">
             <Gift className="size-5" strokeWidth={1.6} aria-hidden="true" />
-            Secret Santa
+            Private Santa
           </header>
         ) : null}
         <div

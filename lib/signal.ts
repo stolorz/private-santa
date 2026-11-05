@@ -32,7 +32,7 @@ export type { SendResult };
 
 const SIGNAL_NOTE_TO_SELF = "self";
 export const SIGNAL_TEST_MESSAGE =
-  "Secret Santa test: Signal is linked and sending.";
+  "Private Santa test: Signal is linked and sending.";
 
 export interface SignalContact {
   /** go-signal recipient: `self`, E.164, or ACI. */

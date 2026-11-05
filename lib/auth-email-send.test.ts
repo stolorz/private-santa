@@ -30,7 +30,7 @@ describe("sendOrganiserVerificationEmail", () => {
     });
     expect(sendTransactionalEmail).toHaveBeenCalledWith({
       to: "ada@example.com",
-      subject: "Confirm your Secret Santa organiser account",
+      subject: "Confirm your Private Santa organiser account",
       text: expect.stringContaining(
         "https://example.com/api/auth/verify-email?token=abc",
       ),
@@ -97,7 +97,7 @@ describe("sendOrganiserResetPasswordEmail", () => {
     });
     expect(sendTransactionalEmail).toHaveBeenCalledWith({
       to: "ada@example.com",
-      subject: "Reset your Secret Santa organiser password",
+      subject: "Reset your Private Santa organiser password",
       text: `Open this link to choose a new password. It expires in one hour:\n\n${url}\n\nIf you did not ask for this, you can ignore this email.\n`,
     });
   });

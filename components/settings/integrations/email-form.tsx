@@ -181,7 +181,7 @@ export function EmailForm({ view, onSaved }: IntegrationFormProps) {
             setFrom(e.target.value);
             setSaved(false);
           }}
-          placeholder="Secret Santa <santa@your.domain>"
+          placeholder="Private Santa <santa@your.domain>"
         />
       </Field>
       <Field

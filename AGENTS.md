@@ -1,8 +1,9 @@
 # Agent handbook
 
-Private Secret Santa for one organiser. Guests never create accounts — they
-open a private `/{token}` link. Product setup for humans is in [README.md](README.md).
-Deep reference is in [docs/](docs/README.md).
+Private Santa for one organiser. Guests never create accounts — they
+open a private `/{token}` link. The product pitch is in [README.md](README.md).
+Local setup is in [docs/setup.md](docs/setup.md). Deep reference is in
+[docs/](docs/README.md).
 
 ## What this is
 
@@ -197,6 +198,7 @@ In the **same change** as the code:
 | Test helper, coverage include/exclude | `docs/testing.md` |
 | Invariant, deploy step, coverage bar | this file |
 | Product feature visible to humans | `README.md` |
+| Local setup, scripts, backup, integration how-to | `docs/setup.md` |
 
 Do not let README, AGENTS.md, and `docs/` disagree.
 
@@ -220,6 +222,7 @@ changing that wording, when the file is present, and do not commit it.
 | Doc | What |
 |---|---|
 | [docs/README.md](docs/README.md) | Index |
+| [docs/setup.md](docs/setup.md) | Local setup, backup, integrations, scripts |
 | [docs/architecture.md](docs/architecture.md) | Routes, auth, flows, `basePath` |
 | [docs/data-model.md](docs/data-model.md) | Tables and invariants |
 | [docs/api.md](docs/api.md) | HTTP catalog |

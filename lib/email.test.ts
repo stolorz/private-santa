@@ -392,7 +392,7 @@ describe("sendEmailTest", () => {
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "ada@example.com",
-        subject: "Secret Santa test",
+        subject: "Private Santa test",
         attachments: [winterBannerAttachment],
         headers: { [SANTA_TOKEN_HEADER]: EMAIL_TEST_TOKEN },
         messageId: `<santa.${EMAIL_TEST_TOKEN}@test.dev>`,

@@ -190,8 +190,8 @@ export async function sendEmailTest(to: string): Promise<EmailResult> {
     await sendEmailBatch([
       {
         to,
-        subject: "Secret Santa test",
-        text: "This is a Secret Santa test. If you received this, email delivery is working.",
+        subject: "Private Santa test",
+        text: "This is a Private Santa test. If you received this, email delivery is working.",
         revealToken: EMAIL_TEST_TOKEN,
       },
     ]),

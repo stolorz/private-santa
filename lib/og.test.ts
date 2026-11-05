@@ -105,7 +105,7 @@ describe("metadataFromOg", () => {
       title: "Xmas 2026",
       description: "Private guest link.",
     });
-    expect(meta.title).toBe("Xmas 2026 · WhatsApp Secret Santa");
+    expect(meta.title).toBe("Xmas 2026 · Private Santa");
     expect(meta.description).toBe("Private guest link.");
     expect(meta.openGraph?.title).toBe(meta.title);
     expect(meta.openGraph?.description).toBe("Private guest link.");
