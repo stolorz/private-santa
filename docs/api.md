@@ -214,7 +214,9 @@ left unchanged.
 **Body:** `{ giverId, receiverId }`  
 **201:** `{ assignment, revealLink, draw }`  
 Creates a draw row if none exists, copying automatic exclusions from the
-edition. **Does not** auto-deliver.  
+edition. Rejects self-draw (when disallowed), excluded pairs, and past
+pairings from earlier editions (when `avoidPastPairings` is active).
+**Does not** auto-deliver.  
 **Calls:** `addManualPair`
 
 ### `PATCH /api/e/[code]/assignments/[token]`

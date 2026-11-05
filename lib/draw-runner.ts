@@ -4,7 +4,7 @@ import { effectiveBudgetKind } from "@/lib/budget";
 import { db, schema, type DbHandle } from "@/lib/db";
 import type { Assignment, Draw, Event, GuestView } from "@/lib/db/schema";
 import { unconfiguredDeliveryError } from "@/lib/delivery";
-import { DrawError, leftoverIds, runDraw } from "@/lib/draw";
+import { DrawError, hasPastPairing, leftoverIds, runDraw } from "@/lib/draw";
 import { pastPairingLayers } from "@/lib/draw-history";
 import { allocateUniqueRevealToken } from "@/lib/event-code";
 import { listExclusionsOn } from "@/lib/exclusion-store";
@@ -323,6 +323,16 @@ export async function addManualPair(
       const exclusions = listExclusionsOn(event.id, tx);
       if (hasExclusionPair(exclusions, giverId, receiverId)) {
         throw new DrawError("That pair is excluded.");
+      }
+      if (
+        solverFlags.avoidPastPairings &&
+        hasPastPairing(
+          pastPairingLayers(tx, event).flat(),
+          giverId,
+          receiverId,
+        )
+      ) {
+        throw new DrawError("That pair was drawn in an earlier edition.");
       }
 
       const draw = current

@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, lt, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { HistoryLayer } from "@/lib/draw";
-import { schema, type DbHandle } from "@/lib/db";
+import { db, schema, type DbHandle } from "@/lib/db";
 import type { Event } from "@/lib/db/schema";
 
 /**
@@ -48,7 +48,7 @@ export function historyPairsForDraw(
 export function pastPairingLayers(
   tx: DbHandle,
   event: Event,
-  drawId: number,
+  drawId = 0,
 ): HistoryLayer[] {
   const pastDraw = alias(schema.draw, "past_draw");
   const pastEvent = alias(schema.event, "past_event");
@@ -103,4 +103,10 @@ export function pastPairingLayers(
     recentDraws.push({ id: row.drawId });
   }
   return historyPairsForDraw(drawId, recentDraws, rows);
+}
+
+export async function listPastPairings(
+  event: Event,
+): Promise<Array<[number, number]>> {
+  return pastPairingLayers(db, event).flat();
 }

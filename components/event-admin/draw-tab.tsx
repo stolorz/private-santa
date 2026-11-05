@@ -18,7 +18,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LocalDateTime } from "@/components/ui/local-date-time";
-import { drawReadiness, possibleRecipientsByGiver } from "@/lib/draw";
+import {
+  drawReadiness,
+  hasPastPairing,
+  possibleRecipientsByGiver,
+} from "@/lib/draw";
 import { drawResultsFilename } from "@/lib/draw-results-csv";
 import { drawConstraintSummary } from "@/lib/draw-summary";
 import type { Exclusion, GuestView } from "@/lib/db/schema";
@@ -35,6 +39,7 @@ export function DrawTab({
   hasPastEditions,
   allowSelfDraw,
   avoidPastPairings,
+  pastPairings = [],
   occursOn,
 }: {
   code: string;
@@ -44,11 +49,16 @@ export function DrawTab({
   hasPastEditions: boolean;
   allowSelfDraw: boolean;
   avoidPastPairings: boolean;
+  pastPairings?: Array<[number, number]>;
   occursOn: string;
 }) {
   const router = useRouter();
   const disallowSelfDraw = !allowSelfDraw;
   const applyAvoidPastPairings = avoidPastPairings && hasPastEditions;
+  const activePastPairings = useMemo(
+    () => (applyAvoidPastPairings ? pastPairings : []),
+    [applyAvoidPastPairings, pastPairings],
+  );
   const [pairGiver, setPairGiver] = useState("");
   const [pairReceiver, setPairReceiver] = useState("");
   const [drawConfirmOpen, setDrawConfirmOpen] = useState(false);
@@ -73,11 +83,10 @@ export function DrawTab({
   });
   const hasPairs = assignedGiverIds.size > 0;
 
-  function pairBlocked(otherId: string, candidateId: number) {
-    if (!otherId) return false;
-    const other = Number(otherId);
-    if (other === candidateId && disallowSelfDraw) return true;
-    return hasExclusionPair(exclusions, other, candidateId);
+  function pairBlocked(giverId: number, receiverId: number) {
+    if (giverId === receiverId && disallowSelfDraw) return true;
+    if (hasExclusionPair(exclusions, giverId, receiverId)) return true;
+    return hasPastPairing(activePastPairings, giverId, receiverId);
   }
 
   const possibleByGiver = useMemo(
@@ -86,9 +95,15 @@ export function DrawTab({
         leftoverGivers.map((g) => g.id),
         leftoverReceivers.map((g) => g.id),
         exclusions.map((e) => [e.aId, e.bId] as [number, number]),
-        { allowSelfDraw },
+        { allowSelfDraw, pastPairings: activePastPairings },
       ),
-    [leftoverGivers, leftoverReceivers, exclusions, allowSelfDraw],
+    [
+      leftoverGivers,
+      leftoverReceivers,
+      exclusions,
+      allowSelfDraw,
+      activePastPairings,
+    ],
   );
   const drawPreviewGivers = leftoverGivers.map((giver) => ({
     id: giver.id,

@@ -47,9 +47,8 @@ export function ExclusionsTab({
   const duplicateExclusion =
     !!exA && !!exB && hasExclusionPair(exclusions, Number(exA), Number(exB));
 
-  function exclusionBlockedWith(selectedId: string, guestId: number): boolean {
-    if (!selectedId) return false;
-    return hasExclusionPair(exclusions, Number(selectedId), guestId);
+  function exclusionBlockedWith(aId: number, bId: number): boolean {
+    return hasExclusionPair(exclusions, aId, bId);
   }
 
   const addExclusion = useMutation(

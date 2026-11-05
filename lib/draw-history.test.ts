@@ -5,7 +5,11 @@ vi.mock("@/lib/db", async () => {
   return mockLibDb();
 });
 
-import { historyPairsForDraw, pastPairingLayers } from "@/lib/draw-history";
+import {
+  historyPairsForDraw,
+  listPastPairings,
+  pastPairingLayers,
+} from "@/lib/draw-history";
 import * as schema from "@/lib/db/schema";
 import { mockDb } from "@/test/helpers/db";
 import {
@@ -89,7 +93,7 @@ describe("historyPairsForDraw", () => {
 });
 
 describe("pastPairingLayers", () => {
-  it("dedupes assignments from the same past draw", () => {
+  it("dedupes assignments from the same past draw", async () => {
     mockDb.seed(schema.eventSeries, [makeSeries()]);
     mockDb.seed(schema.event, [
       makeEvent({ id: 1, occursOn: "2025-12-24", code: "past01" }),
@@ -128,6 +132,13 @@ describe("pastPairingLayers", () => {
     const layers = pastPairingLayers(mockDb.db, makeEvent({ id: 2, occursOn: "2026-12-24" }), 2);
     expect(layers).toHaveLength(1);
     expect(layers[0]?.map((pair) => pair.join("->")).sort()).toEqual([
+      "20->21",
+      "21->20",
+    ]);
+    const flat = await listPastPairings(
+      makeEvent({ id: 2, occursOn: "2026-12-24" }),
+    );
+    expect(flat.map((pair) => pair.join("->")).sort()).toEqual([
       "20->21",
       "21->20",
     ]);

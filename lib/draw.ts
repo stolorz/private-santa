@@ -185,11 +185,20 @@ export function drawReadiness(opts: {
   return { everyoneGives, canDrawRemaining };
 }
 
+export function hasPastPairing(
+  pastPairings: ReadonlyArray<readonly [number, number]>,
+  giverId: number,
+  receiverId: number,
+): boolean {
+  return pastPairings.some(
+    ([giver, receiver]) => giver === giverId && receiver === receiverId,
+  );
+}
+
 /**
- * Hard-constraint candidate receivers for each giver: leftover
- * receivers minus self (unless `allowSelfDraw`) minus symmetric
- * exclusions. Past pairings are omitted because they are soft and
- * may be dropped by the solver.
+ * Candidate receivers for each giver: leftover receivers minus self
+ * (unless `allowSelfDraw`), symmetric exclusions, and any directed
+ * `pastPairings` passed in `options`.
  *
  * Receiver order is preserved from `receivers`. A giver with no
  * allowed receiver maps to an empty array.
@@ -198,15 +207,21 @@ export function possibleRecipientsByGiver(
   givers: number[],
   receivers: number[],
   exclusions: Array<[number, number]> = [],
-  options: { allowSelfDraw?: boolean } = {},
+  options: {
+    allowSelfDraw?: boolean;
+    pastPairings?: ReadonlyArray<readonly [number, number]>;
+  } = {},
 ): Map<number, number[]> {
   const allowSelfDraw = options.allowSelfDraw ?? false;
-  const hard = hardForbidden(exclusions);
+  const forbidden = hardForbidden(exclusions);
+  for (const [giver, receiver] of options.pastPairings ?? []) {
+    forbidden.add(pairKey(giver, receiver));
+  }
   // Nothing is assigned yet, so the shared candidate filter's used set stays empty.
   const used = new Set<number>();
   const map = new Map<number, number[]>();
   for (const g of givers) {
-    map.set(g, candidatesFor(g, receivers, used, hard, allowSelfDraw));
+    map.set(g, candidatesFor(g, receivers, used, forbidden, allowSelfDraw));
   }
   return map;
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DrawTab } from "@/components/event-admin/draw-tab";
+import { listPastPairings } from "@/lib/draw-history";
 import { listExclusions } from "@/lib/exclusion-store";
 import { getEventWithSeriesByCode, hasEarlierEdition } from "@/lib/events";
 import { getCurrentDraw } from "@/lib/pairings";
@@ -17,12 +18,14 @@ export default async function EventAdminDrawPage({
   if (!found) notFound();
   const { event, series } = found;
 
-  const [guests, exclusions, currentDraw, hasPastEditions] = await Promise.all([
-    guestsForEvent(event.id),
-    listExclusions(event.id),
-    getCurrentDraw(event.id),
-    hasEarlierEdition(series.id, event),
-  ]);
+  const [guests, exclusions, currentDraw, hasPastEditions, pastPairings] =
+    await Promise.all([
+      guestsForEvent(event.id),
+      listExclusions(event.id),
+      getCurrentDraw(event.id),
+      hasEarlierEdition(series.id, event),
+      listPastPairings(event),
+    ]);
 
   return (
     <DrawTab
@@ -34,6 +37,7 @@ export default async function EventAdminDrawPage({
       hasPastEditions={hasPastEditions}
       allowSelfDraw={event.allowSelfDraw}
       avoidPastPairings={event.avoidPastPairings}
+      pastPairings={pastPairings}
       occursOn={event.occursOn}
     />
   );

@@ -37,7 +37,7 @@ export function PairPicker({
   submitLabel: string;
   disabled?: boolean;
   submitDisabled?: boolean;
-  isBlocked: (otherId: string, candidateId: number) => boolean;
+  isBlocked: (leftId: number, rightId: number) => boolean;
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
@@ -51,7 +51,7 @@ export function PairPicker({
             <SelectItem
               key={option.id}
               value={String(option.id)}
-              disabled={isBlocked(right, option.id)}
+              disabled={Boolean(right) && isBlocked(option.id, Number(right))}
             >
               {option.name}
             </SelectItem>
@@ -67,7 +67,7 @@ export function PairPicker({
             <SelectItem
               key={option.id}
               value={String(option.id)}
-              disabled={isBlocked(left, option.id)}
+              disabled={Boolean(left) && isBlocked(Number(left), option.id)}
             >
               {option.name}
             </SelectItem>
@@ -77,7 +77,11 @@ export function PairPicker({
       <Button
         type="submit"
         disabled={
-          disabled || submitDisabled || !left || !right || isBlocked(left, Number(right))
+          disabled ||
+          submitDisabled ||
+          !left ||
+          !right ||
+          isBlocked(Number(left), Number(right))
         }
       >
         {submitLabel}

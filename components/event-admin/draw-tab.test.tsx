@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDraw, makeGuestView } from "@/test/helpers/fixtures";
@@ -113,5 +113,33 @@ describe("DrawTab", () => {
     expect(
       screen.getByRole("link", { name: "Export CSV" }).getAttribute("download"),
     ).toBe("draw_results.csv");
+  });
+
+  it("hides past pairings from the draw preview when avoidPastPairings is active", async () => {
+    const user = userEvent.setup();
+    render(
+      <DrawTab
+        code="abcdef"
+        guests={[
+          makeGuestView({ id: 1, name: "Danuta" }),
+          makeGuestView({ id: 2, name: "Eryk" }),
+          makeGuestView({ id: 3, name: "Paweł" }),
+        ]}
+        exclusions={[]}
+        currentDraw={null}
+        hasPastEditions
+        allowSelfDraw={false}
+        avoidPastPairings
+        pastPairings={[[1, 2]]}
+        occursOn="2026-12-24"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Run draw/ }));
+    const dialog = within(screen.getByRole("dialog"));
+    const danutaRow = dialog.getByText("Danuta").closest("li");
+    const erykRow = dialog.getByText("Eryk").closest("li");
+    expect(danutaRow?.textContent).toContain("Paweł");
+    expect(danutaRow?.textContent).not.toContain("Eryk");
+    expect(erykRow?.textContent).toContain("Danuta, Paweł");
   });
 });

@@ -54,9 +54,10 @@ opening.
 
 `setAutomaticExclusions` writes the edition immediately and, when a draw
 exists, the same two columns on that draw. `addManualPair` does the leftover
-+ exclusion + self-draw checks against the edition, creates a draw row if
-none (copying those flags), and does **not** auto-deliver. Deleting the last
-assignment also deletes the draw row.
++ exclusion + self-draw + past-pairing (when `avoidPastPairings` is active)
+checks against the edition, creates a draw row if none (copying those flags),
+and does **not** auto-deliver. Deleting the last assignment also deletes the
+draw row.
 
 `currentDrawResultsCsv` archives that same current draw. Rows are the
 guest display names, sorted by giver then receiver. A giver or receiver

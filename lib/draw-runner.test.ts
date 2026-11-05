@@ -873,6 +873,46 @@ describe("addManualPair", () => {
     });
     expect(result.assignment).toMatchObject({ giverId: 1, receiverId: 1 });
   });
+
+  it("rejects a pair drawn in an earlier edition when avoidPastPairings is active", async () => {
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    const older = makeEvent({ id: 2, occursOn: "2025-12-24", code: "older1" });
+    const event = makeEvent({
+      id: 1,
+      occursOn: "2026-12-24",
+      avoidPastPairings: true,
+    });
+    mockDb.seed(schema.event, [older, event]);
+    mockDb.seed(schema.person, [
+      makePerson({ id: 1, name: "Danuta" }),
+      makePerson({ id: 2, name: "Eryk" }),
+    ]);
+    mockDb.seed(schema.guest, [
+      makeGuest({ id: 10, eventId: 2, personId: 1 }),
+      makeGuest({ id: 11, eventId: 2, personId: 2 }),
+      makeGuest({ id: 1, eventId: 1, personId: 1 }),
+      makeGuest({ id: 2, eventId: 1, personId: 2 }),
+    ]);
+    mockDb.seed(schema.draw, [
+      makeDraw({ id: 9, eventId: 2, status: "completed" }),
+    ]);
+    mockDb.seed(schema.assignment, [
+      makeAssignment({
+        id: 1,
+        drawId: 9,
+        giverId: 10,
+        receiverId: 11,
+        revealToken: "tokold",
+      }),
+    ]);
+
+    await expect(
+      addManualPair(event, { giverId: 1, receiverId: 2 }),
+    ).rejects.toThrow("That pair was drawn in an earlier edition.");
+
+    const reverse = await addManualPair(event, { giverId: 2, receiverId: 1 });
+    expect(reverse.assignment).toMatchObject({ giverId: 2, receiverId: 1 });
+  });
 });
 
 describe("setAutomaticExclusions", () => {

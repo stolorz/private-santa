@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DrawError,
   drawReadiness,
+  hasPastPairing,
   leftoverIds,
   possibleRecipientsByGiver,
   runDraw,
@@ -400,5 +401,27 @@ describe("possibleRecipientsByGiver", () => {
   it("returns an empty list when a leftover giver has no allowed receiver", () => {
     const map = possibleRecipientsByGiver([1], [3], [[1, 3]]);
     expect(map.get(1)).toEqual([]);
+  });
+
+  it("excludes directed past pairings without blocking the reverse direction", () => {
+    const map = possibleRecipientsByGiver([1, 2, 3], [1, 2, 3], [], {
+      pastPairings: [[1, 2]],
+    });
+    expect(map.get(1)).toEqual([3]);
+    expect(map.get(2)).toEqual([1, 3]);
+    expect(map.get(3)).toEqual([1, 2]);
+  });
+});
+
+describe("hasPastPairing", () => {
+  it("matches only the exact directed giver->receiver pair", () => {
+    const past: Array<[number, number]> = [
+      [1, 2],
+      [2, 3],
+    ];
+    expect(hasPastPairing(past, 1, 2)).toBe(true);
+    expect(hasPastPairing(past, 1, 3)).toBe(false);
+    expect(hasPastPairing(past, 2, 1)).toBe(false);
+    expect(hasPastPairing(past, 3, 1)).toBe(false);
   });
 });

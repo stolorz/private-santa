@@ -54,4 +54,50 @@ describe("PairPicker", () => {
     await user.click(screen.getByRole("button", { name: "Add pair" }));
     expect(onSubmit).toHaveBeenCalled();
   });
+
+  it("checks isBlocked in left-to-right order so directed rules stay asymmetric", () => {
+    const isBlocked = vi.fn(
+      (leftId: number, rightId: number) => leftId === 1 && rightId === 2,
+    );
+    const { rerender } = render(
+      <PairPicker
+        left="1"
+        right="2"
+        onLeftChange={vi.fn()}
+        onRightChange={vi.fn()}
+        leftPlaceholder="Giver"
+        rightPlaceholder="Receiver"
+        leftOptions={people}
+        rightOptions={people}
+        submitLabel="Add pair"
+        isBlocked={isBlocked}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(isBlocked).toHaveBeenCalledWith(1, 2);
+    expect(screen.getByRole("button", { name: "Add pair" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+
+    rerender(
+      <PairPicker
+        left="2"
+        right="1"
+        onLeftChange={vi.fn()}
+        onRightChange={vi.fn()}
+        leftPlaceholder="Giver"
+        rightPlaceholder="Receiver"
+        leftOptions={people}
+        rightOptions={people}
+        submitLabel="Add pair"
+        isBlocked={isBlocked}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Add pair" })).toHaveProperty(
+      "disabled",
+      false,
+    );
+  });
 });
