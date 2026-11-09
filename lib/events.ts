@@ -275,7 +275,9 @@ function copyGuestsAndExclusionsOn(
     const aId = aPerson != null ? personToNewGuest.get(aPerson) : undefined;
     const bId = bPerson != null ? personToNewGuest.get(bPerson) : undefined;
     if (aId == null || bId == null) continue;
-    copied.push({ eventId: toEventId, aId, bId });
+    const [left, right] = aId <= bId ? [aId, bId] : [bId, aId];
+    if (copied.some((row) => row.aId === left && row.bId === right)) continue;
+    copied.push({ eventId: toEventId, aId: left, bId: right });
   }
   if (copied.length > 0) {
     tx.insert(schema.exclusion).values(copied).run();
@@ -561,15 +563,20 @@ export async function updateEdition(
   return updated ?? event;
 }
 
+function hasCompletedDrawOn(eventId: number, handle: DbHandle): boolean {
+  return handle
+    .select({ id: schema.draw.id, status: schema.draw.status })
+    .from(schema.draw)
+    .where(eq(schema.draw.eventId, eventId))
+    .all()
+    .some((d) => d.status === "completed");
+}
+
 export async function deleteEdition(
   event: Event,
   deletePersonIds: number[] = [],
 ): Promise<void> {
-  const draws = await db
-    .select({ id: schema.draw.id, status: schema.draw.status })
-    .from(schema.draw)
-    .where(eq(schema.draw.eventId, event.id));
-  if (draws.some((d) => d.status === "completed")) {
+  if (hasCompletedDrawOn(event.id, db)) {
     throw new EventError("Cannot delete an edition that has completed draws.");
   }
 
@@ -577,6 +584,9 @@ export async function deleteEdition(
   const photos: (string | null)[] = [];
   const galleryIds = photoIdsForEventOn(db, event.id);
   db.transaction((tx) => {
+    if (hasCompletedDrawOn(event.id, tx)) {
+      throw new EventError("Cannot delete an edition that has completed draws.");
+    }
     if (deletePersonIds.length > 0) {
       const { exclusive, notSeated, shared } = peopleExclusiveToEvent(
         event.id,

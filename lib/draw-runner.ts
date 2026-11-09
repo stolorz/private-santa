@@ -238,33 +238,30 @@ function insertDraw(tx: DbHandle, event: Event, extra: DrawInsertExtra): Draw {
 
 export async function startDraw(event: Event): Promise<ExecuteResult> {
   const guests = await guestsForEvent(event.id);
-  const current = await latestDrawForEvent(event.id);
-  const existingAssignments = current
-    ? assignmentsForDraw(current.id)
-    : [];
-  const leftover = leftoverIds(
-    guests.map((g) => g.id),
-    existingAssignments,
-  );
   const solverFlags = await solverFlagsForEdition(event);
 
-  if (guests.length === 0 || leftover.givers.length === 0) {
-    throw new DrawError(
-      leftover.givers.length === 0 && guests.length > 0
-        ? "Everyone already has someone to give to."
-        : "Need at least 2 participants to run a draw.",
-    );
-  }
-  if (
-    leftover.givers.length === 1 &&
-    leftover.givers[0] === leftover.receivers[0] &&
-    !solverFlags.allowSelfDraw
-  ) {
+  if (guests.length === 0) {
     throw new DrawError("Need at least 2 participants to run a draw.");
   }
 
   try {
     const updated = db.transaction((tx) => {
+      const current = latestDrawOn(tx, event.id);
+      const leftover = leftoverIds(
+        guests.map((g) => g.id),
+        current ? assignmentsForDraw(current.id, tx) : [],
+      );
+      if (leftover.givers.length === 0) {
+        throw new DrawError("Everyone already has someone to give to.");
+      }
+      if (
+        leftover.givers.length === 1 &&
+        leftover.givers[0] === leftover.receivers[0] &&
+        !solverFlags.allowSelfDraw
+      ) {
+        throw new DrawError("Need at least 2 participants to run a draw.");
+      }
+
       const draw = current
         ? mustExist(
             tx

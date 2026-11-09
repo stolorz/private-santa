@@ -137,7 +137,7 @@ and currency extras are copied as stored. It copies `location` and
 `locationGdzie` from the source edition, or leaves them null. It also copies
 `event_template`
 rows from the source, or snapshots the Settings JSON when the source has
-none. Automatic exclusions are not copied; `avoidPastPairings` starts on
+none. Copied exclusions are stored `aId <= bId`. Automatic exclusions are not copied; `avoidPastPairings` starts on
 only when an earlier edition already exists. `updateEdition` refuses any
 write that would leave either one blank (`Enter the missing location: …`),
 and keeps the stored values.
@@ -206,7 +206,7 @@ channels can demote recipients to unreachable.
 | `lib/signal-link.ts` | In-process QR linking. The Settings page shows the QR and checks every 2 seconds. `npm run signal:link` is the same flow from the terminal |
 | `lib/go-signal.ts` | Download/verify go-signal 0.3.0 into `data/bin/` on first link (Linux or macOS), process mutex, exit 3 = unlinked |
 | `lib/email.ts` | Nodemailer. Mailbox from Settings, not env. Draw mail: `X-Santa-Token` + Message-ID `<santa.{token}@{domain}>`. Transporter cached per mailbox. Test mail: empty batch is `ok: false` with an indeterminate error. Test hook: `resetMailClient` |
-| `lib/email-bounce.ts` | IMAP INBOX poll. Runs only when an IMAP host is stored. DSN parse. UID cursor in `app_setting`. Marks the matching assignment; the Draw tab guest links show the failure. Never throws |
+| `lib/email-bounce.ts` | IMAP INBOX poll. Runs only when an IMAP host is stored. DSN parse. UID cursor in `app_setting`. Token match first; the Integrations test token is ignored and does not fall back. Recipient fallback is the newest completed assignment by `draw.executedAt`. Marks the matching assignment; the Draw tab guest links show the failure. Never throws |
 | `lib/push.ts` | web-push + VAPID. Sends only when keys and a subject are stored. `pushToAdmins`. Dead endpoints 404/410 deleted |
 
 Signal has no Cloud API; this app is a **linked secondary device**. The

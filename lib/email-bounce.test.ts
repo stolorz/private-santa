@@ -24,6 +24,7 @@ vi.mock("@/lib/db", async () => {
   return mockLibDb();
 });
 
+import { EMAIL_TEST_TOKEN } from "@/lib/email";
 import {
   applyEmailBounce,
   parseBounceMessage,
@@ -254,6 +255,108 @@ describe("applyEmailBounce", () => {
     ).resolves.toBe(true);
 
     expect(mockDb.rows(schema.assignment)[0]?.emailFailed).toBe(true);
+  });
+
+  it("ignores the integrations test token and does not fall back to the recipient", async () => {
+    mockDb.seed(schema.person, [
+      makePerson({ id: 1, name: "Ada", email: "ada@example.com" }),
+      makePerson({ id: 2, name: "Bea", email: "bea@example.com" }),
+    ]);
+    mockDb.seed(schema.guest, [
+      makeGuest({ id: 1, personId: 1 }),
+      makeGuest({ id: 2, personId: 2 }),
+    ]);
+    mockDb.seed(schema.draw, [
+      makeDraw({
+        id: 1,
+        status: "completed",
+        executedAt: new Date("2026-01-01"),
+      }),
+    ]);
+    mockDb.seed(schema.assignment, [
+      makeAssignment({
+        id: 1,
+        giverId: 1,
+        receiverId: 2,
+        revealToken: "tok-ada",
+        deliveredEmail: true,
+      }),
+    ]);
+
+    await expect(
+      applyEmailBounce({
+        token: EMAIL_TEST_TOKEN,
+        recipients: ["ada@example.com"],
+        reason: "550 user unknown",
+      }),
+    ).resolves.toBe(false);
+
+    expect(mockDb.rows(schema.assignment)[0]?.emailFailed).toBe(false);
+  });
+
+  it("marks the newest completed assignment when the token is missing", async () => {
+    mockDb.seed(schema.event, [
+      makeEvent({ id: 2, code: "later1", occursOn: "2026-12-25" }),
+    ]);
+    mockDb.seed(schema.person, [
+      makePerson({ id: 1, name: "Ada", email: "ada@example.com" }),
+      makePerson({ id: 2, name: "Bea", email: "bea@example.com" }),
+    ]);
+    mockDb.seed(schema.guest, [
+      makeGuest({ id: 1, eventId: 1, personId: 1 }),
+      makeGuest({ id: 2, eventId: 1, personId: 2 }),
+      makeGuest({ id: 3, eventId: 2, personId: 1 }),
+      makeGuest({ id: 4, eventId: 2, personId: 2 }),
+    ]);
+    mockDb.seed(schema.draw, [
+      makeDraw({
+        id: 1,
+        eventId: 1,
+        status: "completed",
+        executedAt: new Date("2025-01-01"),
+      }),
+      makeDraw({
+        id: 2,
+        eventId: 2,
+        status: "completed",
+        executedAt: new Date("2026-12-01"),
+      }),
+    ]);
+    mockDb.seed(schema.assignment, [
+      makeAssignment({
+        id: 1,
+        drawId: 1,
+        giverId: 1,
+        receiverId: 2,
+        revealToken: "tok-old",
+        deliveredEmail: true,
+      }),
+      makeAssignment({
+        id: 2,
+        drawId: 2,
+        giverId: 3,
+        receiverId: 4,
+        revealToken: "tok-new",
+        deliveredEmail: false,
+      }),
+    ]);
+
+    await expect(
+      applyEmailBounce({
+        token: null,
+        recipients: ["ada@example.com"],
+        reason: "mailbox full",
+      }),
+    ).resolves.toBe(true);
+
+    const rows = mockDb.rows(schema.assignment);
+    expect(rows.find((row) => row.id === 1)).toMatchObject({
+      emailFailed: false,
+    });
+    expect(rows.find((row) => row.id === 2)).toMatchObject({
+      emailFailed: true,
+      emailFailedReason: "mailbox full",
+    });
   });
 
   it("skips IMAP when the mailbox is not configured", async () => {

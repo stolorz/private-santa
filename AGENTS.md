@@ -95,7 +95,9 @@ Do not break these. Tests encode most of them.
 14. **Signal CLI is mutexed.** One local store; unlink wipes `SIGNAL_STORE_DIR`
     but refuses `/` and cwd.
 15. **Email bounces** match `X-Santa-Token` / `<santa.{token}@…>` first, then
-    latest completed assignment for that recipient email.
+    the newest completed assignment for that recipient email
+    (`draw.executedAt`). The Integrations test token is ignored and does
+    not fall back.
 16. **`fetch("/api/…")` ignores Next `basePath`.** Always use `apiPath()`,
     `eventApiPath()`, `revealApiPath()`, `galleryMediaPath()`,
     and `adminGalleryMediaPath()` from `lib/public-path.ts`. Guest gallery

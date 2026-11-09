@@ -157,10 +157,14 @@ describe("createEdition", () => {
     const copied = mockDb.rows(schema.exclusion).filter((e) => e.eventId === edition.id);
     expect(copied).toHaveLength(1);
     const byPerson = new Map(guests.map((g) => [g.personId, g.id]));
-    expect(copied[0]).toMatchObject({
-      aId: byPerson.get(1),
-      bId: byPerson.get(2),
-    });
+    const left = byPerson.get(1);
+    const right = byPerson.get(2);
+    const [aId, bId] =
+      left != null && right != null && left <= right
+        ? [left, right]
+        : [right, left];
+    expect(copied[0]).toMatchObject({ aId, bId });
+    expect(copied[0]!.aId).toBeLessThanOrEqual(copied[0]!.bId);
 
     expect(
       mockDb.rows(schema.wishlistItem).filter((w) =>
@@ -545,6 +549,30 @@ describe("deleteEdition", () => {
     expect(mockDb.rows(schema.guest)).toHaveLength(1);
   });
 
+  it("refuses a completed draw that lands after the early check", async () => {
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    mockDb.seed(schema.event, [makeEvent()]);
+    mockDb.seed(schema.person, [makePerson({ id: 1, name: "Ada" })]);
+    mockDb.seed(schema.guest, [makeGuest({ id: 1, eventId: 1, personId: 1 })]);
+
+    const origTx = db.transaction.bind(db);
+    const spy = vi.spyOn(db, "transaction").mockImplementation((fn, config) => {
+      mockDb.seed(schema.draw, [makeDraw({ status: "completed" })]);
+      return origTx(fn as never, config as never);
+    });
+    try {
+      await expect(deleteEdition(makeEvent(), [1])).rejects.toThrow(
+        "Cannot delete an edition that has completed draws.",
+      );
+      expect(mockDb.rows(schema.event)).toHaveLength(1);
+      expect(mockDb.rows(schema.person).map((p) => p.id)).toEqual([1]);
+      expect(mockDb.rows(schema.guest)).toHaveLength(1);
+      expect(mockDb.rows(schema.draw)).toHaveLength(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("deletes gallery photo rows with the edition", async () => {
     mockDb.seed(schema.eventSeries, [makeSeries()]);
     mockDb.seed(schema.event, [
@@ -835,6 +863,45 @@ describe("createEdition errors", () => {
         fromEventId: 2,
       }),
     ).rejects.toThrow("Unknown source edition.");
+  });
+
+  it("stores copied exclusions with aId <= bId", async () => {
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    mockDb.seed(schema.event, [makeEvent()]);
+    mockDb.seed(schema.person, [
+      makePerson({ id: 1, name: "Ada" }),
+      makePerson({ id: 2, name: "Bea" }),
+    ]);
+    mockDb.seed(schema.guest, [
+      makeGuest({ id: 10, eventId: 1, personId: 1 }),
+      makeGuest({ id: 20, eventId: 1, personId: 2 }),
+    ]);
+    mockDb.seed(schema.exclusion, [
+      makeExclusion({ id: 1, eventId: 1, aId: 20, bId: 10 }),
+    ]);
+
+    const edition = await createEdition({
+      seriesId: 1,
+      occursOn: "2026-12-25",
+      name: "Xmas",
+    });
+
+    const guests = mockDb
+      .rows(schema.guest)
+      .filter((g) => g.eventId === edition.id);
+    const byPerson = new Map(guests.map((g) => [g.personId, g.id]));
+    const left = byPerson.get(1);
+    const right = byPerson.get(2);
+    const [aId, bId] =
+      left != null && right != null && left <= right
+        ? [left, right]
+        : [right, left];
+    const copied = mockDb
+      .rows(schema.exclusion)
+      .filter((e) => e.eventId === edition.id);
+    expect(copied).toHaveLength(1);
+    expect(copied[0]).toMatchObject({ aId, bId });
+    expect(copied[0]!.aId).toBeLessThanOrEqual(copied[0]!.bId);
   });
 
   it("skips exclusions whose guests are missing from the source", async () => {

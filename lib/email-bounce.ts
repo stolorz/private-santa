@@ -3,7 +3,11 @@ import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { ImapFlow } from "imapflow";
 import { db, first, schema } from "@/lib/db";
 import type { Assignment } from "@/lib/db/schema";
-import { clipEmailFailReason, SANTA_TOKEN_HEADER } from "@/lib/email";
+import {
+  clipEmailFailReason,
+  EMAIL_TEST_TOKEN,
+  SANTA_TOKEN_HEADER,
+} from "@/lib/email";
 import { getEmailConfig, isEmailBounceComplete } from "@/lib/integrations";
 import { normalizeEmail } from "@/lib/people";
 import { getSettingMap, setSettingMap } from "@/lib/settings";
@@ -133,10 +137,7 @@ async function assignmentByRecipient(
           ),
         ),
       )
-      .orderBy(
-        desc(schema.assignment.deliveredEmail),
-        desc(schema.draw.executedAt),
-      )
+      .orderBy(desc(schema.draw.executedAt))
       .limit(1),
   );
   return row?.assignment;
@@ -144,6 +145,7 @@ async function assignmentByRecipient(
 
 /** Persist a bounce against the matching assignment. Returns whether a row was updated. */
 export async function applyEmailBounce(parsed: BounceParse): Promise<boolean> {
+  if (parsed.token === EMAIL_TEST_TOKEN) return false;
   const byToken = parsed.token
     ? await assignmentByToken(parsed.token)
     : undefined;

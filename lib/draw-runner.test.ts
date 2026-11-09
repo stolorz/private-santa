@@ -650,6 +650,30 @@ describe("executeDraw", () => {
 });
 
 describe("startDraw", () => {
+  it("keeps one lottery when two runs overlap", async () => {
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    mockDb.seed(schema.event, [makeEvent()]);
+    seedSeats([ADA, BEA]);
+
+    const results = await Promise.allSettled([
+      startDraw(makeEvent()),
+      startDraw(makeEvent()),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({
+        message: "Everyone already has someone to give to.",
+      }),
+    });
+    expect(mockDb.rows(schema.draw)).toHaveLength(1);
+    expect(mockDb.rows(schema.assignment)).toHaveLength(2);
+  });
+
   it("runs when guests have full Polish cases and no gender", async () => {
     mockDb.seed(schema.eventSeries, [makeSeries()]);
     mockDb.seed(schema.event, [makeEvent()]);
