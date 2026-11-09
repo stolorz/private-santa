@@ -12,6 +12,8 @@ import {
   makeAssignment,
   makeDraw,
   makeEvent,
+  makeEventPhoto,
+  makeEventPhotoVariant,
   makeGuest,
   makePerson,
   makeSeries,
@@ -137,7 +139,13 @@ describe("listPastGiftsForGiver", () => {
     );
 
     await expect(listPastGiftsForGiver(CURRENT)).resolves.toEqual([
-      expect.objectContaining({ name: "Bea", year: "2025", personId: 2 }),
+      expect.objectContaining({
+        name: "Bea",
+        year: "2025",
+        personId: 2,
+        eventCode: "past01",
+        photoCount: 0,
+      }),
     ]);
   });
 
@@ -356,6 +364,50 @@ describe("listPastGiftsForGiver", () => {
 
     await expect(listPastGiftsForGiver(CURRENT)).resolves.toEqual([
       expect.objectContaining({ name: "Ada", year: "2025", personId: 1 }),
+    ]);
+  });
+
+  it("counts ready thumbnails on a past edition", async () => {
+    seedCurrentEdition();
+    mockDb.add(
+      schema.event,
+      makeEvent({ id: 1, occursOn: "2025-12-24", code: "past01" }),
+    );
+    mockDb.add(schema.guest, makeGuest({ id: 10, eventId: 1, personId: 1 }));
+    mockDb.add(schema.draw, makeDraw({ id: 1, eventId: 1 }));
+    mockDb.add(
+      schema.assignment,
+      makeAssignment({
+        id: 1,
+        drawId: 1,
+        giverId: 10,
+        receiverId: 10,
+        revealToken: "selftokenaaa",
+      }),
+    );
+    mockDb.add(
+      schema.eventPhoto,
+      makeEventPhoto({ id: "b".repeat(32), eventId: 1 }),
+      makeEventPhoto({ id: "c".repeat(32), eventId: 1 }),
+    );
+    mockDb.add(
+      schema.eventPhotoVariant,
+      makeEventPhotoVariant({
+        id: 1,
+        photoId: "b".repeat(32),
+        variant: "thumb",
+        status: "done",
+      }),
+      makeEventPhotoVariant({
+        id: 2,
+        photoId: "c".repeat(32),
+        variant: "thumb",
+        status: "pending",
+      }),
+    );
+
+    await expect(listPastGiftsForGiver(CURRENT)).resolves.toEqual([
+      expect.objectContaining({ eventCode: "past01", photoCount: 1 }),
     ]);
   });
 });

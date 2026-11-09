@@ -11,6 +11,7 @@ import {
   makeWishlistItem,
 } from "@/test/helpers/fixtures";
 import { jsonRequest, tokenParams } from "@/test/helpers/request";
+import { WISHLIST_CLOSED_MESSAGE } from "@/lib/wishlist";
 
 const notifyAdminsOfGuestActivity = vi.hoisted(() =>
   vi.fn(async () => undefined),
@@ -33,7 +34,7 @@ describe("DELETE /api/reveal/[token]/wishlist/[id]", () => {
   beforeEach(() => {
     notifyAdminsOfGuestActivity.mockClear();
     mockDb.seed(schema.eventSeries, [makeSeries()]);
-    mockDb.seed(schema.event, [makeEvent()]);
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2099-12-24" })]);
     mockDb.seed(schema.draw, [makeDraw()]);
     mockDb.seed(schema.person, [
       makePerson({ id: 1, name: "Ada" }),
@@ -88,13 +89,28 @@ describe("DELETE /api/reveal/[token]/wishlist/[id]", () => {
     );
     expect(notifyAdminsOfGuestActivity).not.toHaveBeenCalled();
   });
+
+  it("refuses to delete after the event date", async () => {
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2000-01-01" })]);
+    const res = await DELETE(
+      jsonRequest("/api/reveal/" + TOKEN + "/wishlist/10", {}, { method: "DELETE" }),
+      tokenParams(TOKEN, { id: "10" }),
+    );
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: WISHLIST_CLOSED_MESSAGE,
+    });
+    expect(mockDb.rows(schema.wishlistItem).map((r) => r.id).sort()).toEqual([
+      10, 20,
+    ]);
+  });
 });
 
 describe("PATCH /api/reveal/[token]/wishlist/[id]", () => {
   beforeEach(() => {
     notifyAdminsOfGuestActivity.mockClear();
     mockDb.seed(schema.eventSeries, [makeSeries()]);
-    mockDb.seed(schema.event, [makeEvent()]);
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2099-12-24" })]);
     mockDb.seed(schema.draw, [makeDraw()]);
     mockDb.seed(schema.person, [
       makePerson({ id: 1, name: "Ada" }),
@@ -201,5 +217,20 @@ describe("PATCH /api/reveal/[token]/wishlist/[id]", () => {
       Date,
     );
     expect(notifyAdminsOfGuestActivity).not.toHaveBeenCalled();
+  });
+
+  it("refuses to edit after the event date", async () => {
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2000-01-01" })]);
+    const res = await PATCH(
+      jsonRequest("/api/reveal/" + TOKEN + "/wishlist/10", { text: "Warm gloves" }, {
+        method: "PATCH",
+      }),
+      tokenParams(TOKEN, { id: "10" }),
+    );
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: WISHLIST_CLOSED_MESSAGE,
+    });
+    expect(mockDb.rows(schema.wishlistItem)[0]?.text).toBe("A scarf");
   });
 });

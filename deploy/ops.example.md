@@ -20,6 +20,7 @@ Fill in:
 - rsync commands, including `--exclude ops --exclude .env --exclude data`
 - Live PHP proxy constants (`$prefix`, `$backend`, `$forwardedHost`)
 - Cron line for `deploy/ensure-running.sh`
+- Cron line for `deploy/ensure-photo-worker.sh`
 - Reminder that production `.env` must set `ADMIN_EMAIL` and a strong
   `BETTER_AUTH_SECRET`
 - Reminder that Settings → Templates writes `lib/templates/defaults/*.json`

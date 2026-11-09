@@ -43,6 +43,7 @@ export function WinterPage({
   brand = true,
   sprig = true,
   contained = false,
+  wide = false,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -51,6 +52,8 @@ export function WinterPage({
   sprig?: boolean;
   /** Clip the sky and snowfall to this frame. Used by the template preview. */
   contained?: boolean;
+  /** Guest galleries: keep the phone column, widen from `lg` for extra thumbs. */
+  wide?: boolean;
 }) {
   const japanese = containsJapanese(`${nodeText(title)}\n${nodeText(subtitle)}`);
   return (
@@ -123,7 +126,14 @@ export function WinterPage({
       </div>
       <Snowfall rich contained={contained} />
       <main className="relative z-10 mt-4 flex-1 px-4 sm:mt-5 lg:mt-8 lg:pb-16">
-        <div className="mx-auto w-full max-w-md space-y-6">{children}</div>
+        <div
+          className={cn(
+            "mx-auto w-full max-w-md space-y-6",
+            wide && "lg:max-w-4xl",
+          )}
+        >
+          {children}
+        </div>
       </main>
       <WinterForeground className="lg:hidden" />
     </div>

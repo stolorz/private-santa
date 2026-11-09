@@ -104,6 +104,18 @@ export function revealOgCopy(language: string | null | undefined): {
   };
 }
 
+/** Guest reveal and gallery pages share this so crawlers cannot leak names. */
+export function guestRevealMetadata(
+  og: OgSettings,
+  link: { giver: { language: string | null } } | null,
+): Metadata {
+  if (!link) return metadataFromOg(og);
+  return {
+    ...metadataFromOg(og, revealOgCopy(link.giver.language)),
+    robots: { index: false, follow: false },
+  };
+}
+
 export function eventOgCopy(eventName: string): OgPageCopy {
   const name = eventName.trim();
   return {

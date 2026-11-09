@@ -13,7 +13,8 @@ SQLite that has run the real `drizzle/` migrations.
 | `vitest.config.ts` | Alias `@` → repo root. `setupFiles: test/setup.ts`. Excludes `.next/` and `data/`. Node by default; `*.test.tsx` files set `/** @vitest-environment jsdom */` |
 | `test/setup.ts` | Mocks `server-only`. Mocks `react.cache` as identity. `afterEach`: unstub env, restore mocks, `resetRateLimit()`, `mockDb.reset()`, `resetSettingsCache()`, `resetTemplateDefaultsCache()` |
 | `test/helpers/db.ts` | In-memory `better-sqlite3` + migrator. `seed` / `add` / `rows` / `reset`. FK off during seed |
-| `test/helpers/fixtures.ts` | Factories: `makeUser`, `makeSeries`, `makeEvent`, `makeEventTemplate`, `makePerson`, `makeGuest`, `makeSeat`, `makeDraw`, `makeAssignment`, `eventLocation` (filled place fields), … Stable `FIXTURE_NOW` / `FIXTURE_EVENT_CODE` |
+| `test/helpers/fixtures.ts` | Factories: `makeUser`, `makeSeries`, `makeEvent`, `makeEventTemplate`, `makeEventPhoto`, `makeEventPhotoVariant`, `makePerson`, `makeGuest`, `makeSeat`, `makeDraw`, `makeAssignment`, `eventLocation` (filled place fields), … Stable `FIXTURE_NOW` / `FIXTURE_EVENT_CODE` |
+| `test/helpers/gallery.ts` | Tiny JPEG/PNG/WebP buffers, EXIF-oriented JPEGs, HEIC `ftyp` boxes, temp `UPLOADS_DIR` |
 | `test/helpers/template-defaults.ts` | `useTempTemplateDefaults()` copies the committed JSON into a temp dir so `setTemplates` cannot write git files |
 | `test/helpers/session.ts` | `sessionMockModule()`, `asAdmin()`, `asUser()`, `asAnonymous()` for `vi.mock("@/lib/session")` |
 | `test/helpers/request.ts` | `NextRequest` builders: `emptyRequest`, `jsonRequest`, `formRequest`, `jpegForm`, `routeParams`, `codeParams`, `tokenParams` |
@@ -69,12 +70,15 @@ the pure logic and test that. Do not lower the threshold to hide a gap.
 Interactive UI uses jsdom via `/** @vitest-environment jsdom */` at the top
 of the file (Vitest 4 dropped `environmentMatchGlobs`). Covered today:
 `hooks/use-mutation.ts`, login and signup forms, event-admin tabs (guests,
-exclusions, draw, delivery, pair picker, confirm, reveal links,
+exclusions, draw, delivery, photos, pair picker, confirm, reveal links,
 send-panel, nav), guests editor and shared-contact, events manager / settings /
-push toggle, reveal unwrap and wishlist, settings (integrations, templates,
+push toggle, guest reveal page (wishlist vs photos), guest gallery page
+(including an empty gallery after the party), organiser Photos page,
+wishlist-editor closed-date errors, photo-worker SIGTERM / SIGINT,
+reveal unwrap, previous-years, gallery grid, lightbox, wishlist, settings (integrations, templates,
 people, safety, nav), layout chrome, and inputs (phone, names, photo
-cropper, person picker). Do not start with `components/ui/*` or
-`components/festive/*`.
+cropper, person picker). `WinterPage` `wide` is covered. Do not start with `components/ui/*`
+or other `components/festive/*` atmosphere.
 
 ## Out of unit-test scope
 

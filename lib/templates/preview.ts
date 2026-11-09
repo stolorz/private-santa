@@ -3,7 +3,11 @@ import { dateVars } from "@/lib/event-date";
 import { eventNominative, eventVars } from "@/lib/event-name";
 import { asNameCases, nameVars } from "@/lib/name-cases";
 import { apiPath, guestPortalUrl } from "@/lib/public-path";
-import type { PastGift, RevealedMatch } from "@/lib/reveal";
+import {
+  revealPageSurfaces,
+  type PastGift,
+  type RevealedMatch,
+} from "@/lib/reveal";
 import {
   EMAIL_BANNER_PATH,
   INVITATION_EMAIL_FIELDS,
@@ -62,6 +66,10 @@ export type RevealPreview = {
   match: RevealedMatch | null;
   ownWishlist: readonly string[];
   previousGifts: readonly PastGift[];
+  /** Edition code for the current Photos card; the preview only passes it when count > 0. */
+  currentEventCode: string;
+  currentPhotoCount: number;
+  showOwnWishlist: boolean;
 };
 
 function randomIndex(rng: () => number, length: number): number {
@@ -179,6 +187,7 @@ export function previewSurface(itemId: TemplateItemId): PreviewSurface {
     case "reveal.wishlist":
     case "reveal.own_wishlist":
     case "reveal.previous_years":
+    case "reveal.photos":
       return { kind: "reveal", stage: "unwrapped" };
     case "reveal.not_found":
       return { kind: "reveal", stage: "not-found" };
@@ -271,6 +280,8 @@ function previousGiftsFor(sample: PreviewSample): PastGift[] {
           ...asNameCases(receiver),
           year: String(row.year),
           personId: previewPersonId(receiver.id),
+          eventCode: row.eventCode ?? `past${String(row.year).slice(-2)}x`,
+          photoCount: row.photoCount ?? 0,
         },
       ];
     });
@@ -297,6 +308,7 @@ export function buildRevealPreview(
   language: string,
   sample: PreviewSample,
   stage: PreviewRevealStage,
+  now = new Date(),
 ): RevealPreview {
   const money = budgetCopy(view, language, previewAmounts(sample.event));
   const rendered = revealCopy(view, language, {
@@ -306,6 +318,11 @@ export function buildRevealPreview(
     budget: money.budget,
   });
   const budget = money.revealLabel;
+  const surfaces = revealPageSurfaces(
+    sample.event.occursOn,
+    sample.event.photoCount ?? 0,
+    now,
+  );
   return {
     stage,
     copy: budget ? { ...rendered, budgetLabel: budget } : rendered,
@@ -314,5 +331,8 @@ export function buildRevealPreview(
     match: stage === "unwrapped" ? toRevealedMatch(sample.receiver) : null,
     ownWishlist: sample.giver.wishlist,
     previousGifts: previousGiftsFor(sample),
+    currentEventCode: sample.event.id.slice(0, 6).padEnd(6, "x"),
+    currentPhotoCount: surfaces.currentPhotoCount,
+    showOwnWishlist: surfaces.showOwnWishlist,
   };
 }

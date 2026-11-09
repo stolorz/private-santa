@@ -165,6 +165,12 @@ export const TEMPLATE_ITEMS = [
     label: "Previous years",
     hint: "Shown after unwrap when this guest gave a gift in an earlier edition of the same series.",
   },
+  {
+    id: "reveal.photos",
+    group: "reveal",
+    label: "Photos",
+    hint: "Button and titles for edition photo galleries. Guests open them from their private link.",
+  },
 ] as const satisfies ReadonlyArray<{
   id: string;
   group: TemplateGroupId;
@@ -536,6 +542,66 @@ export const TEMPLATE_FIELDS = [
     label: "Previous years row",
     kind: "input",
     placeholders: ["year", ...RECEIVER_NAME_PLACEHOLDERS],
+  },
+  {
+    id: "reveal.photos_button",
+    item: "reveal.photos",
+    label: "Photos button",
+    kind: "input",
+    placeholders: [],
+  },
+  {
+    id: "reveal.photos_current",
+    item: "reveal.photos",
+    label: "This edition photos",
+    kind: "input",
+    placeholders: [...EVENT_NAME_PLACEHOLDERS],
+  },
+  {
+    id: "reveal.gallery_title",
+    item: "reveal.photos",
+    label: "Gallery title",
+    kind: "input",
+    placeholders: [
+      ...EVENT_NAME_PLACEHOLDERS,
+      ...DATE_PLACEHOLDERS,
+      "year",
+    ],
+  },
+  {
+    id: "reveal.gallery_back",
+    item: "reveal.photos",
+    label: "Gallery back",
+    kind: "input",
+    placeholders: [],
+  },
+  {
+    id: "reveal.gallery_download",
+    item: "reveal.photos",
+    label: "Gallery download",
+    kind: "input",
+    placeholders: [],
+  },
+  {
+    id: "reveal.gallery_close",
+    item: "reveal.photos",
+    label: "Gallery close",
+    kind: "input",
+    placeholders: [],
+  },
+  {
+    id: "reveal.gallery_previous",
+    item: "reveal.photos",
+    label: "Gallery previous",
+    kind: "input",
+    placeholders: [],
+  },
+  {
+    id: "reveal.gallery_next",
+    item: "reveal.photos",
+    label: "Gallery next",
+    kind: "input",
+    placeholders: [],
   },
 ] as const satisfies ReadonlyArray<{
   id: string;

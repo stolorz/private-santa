@@ -39,6 +39,14 @@ const COPY: RevealCopy = {
   previousTitle: "Previous years",
   previousDescription: "Previously you have prepared presents for",
   previousRow: "{year} — {receiver}",
+  photosButton: "Photos",
+  photosCurrent: "Photos from this year",
+  galleryTitle: "Photos",
+  galleryBack: "Back",
+  galleryDownload: "Download original",
+  galleryClose: "Close",
+  galleryPrevious: "Previous photo",
+  galleryNext: "Next photo",
   notFoundTitle: "Missing",
   notFoundDescription: "Gone",
   unwrapError: "Could not unwrap.",
@@ -69,6 +77,8 @@ const PAST_GIFTS: PastGift[] = [
     gender: "female",
     year: "2025",
     personId: 3,
+    eventCode: "past25",
+    photoCount: 0,
   },
   {
     name: "Drew Cole",
@@ -81,6 +91,8 @@ const PAST_GIFTS: PastGift[] = [
     gender: "male",
     year: "2024",
     personId: 4,
+    eventCode: "past24",
+    photoCount: 2,
   },
 ];
 
@@ -387,6 +399,69 @@ describe("ReceiverReveal", () => {
       />,
     );
     expect(screen.getByText("2025 — Cara Diaz")).toBeTruthy();
+  });
+
+  it("omits this year's photos card when the page did not pass an edition code", () => {
+    requestJson.mockReset();
+    requestJson.mockResolvedValue({ ok: true, data: {}, error: null, status: 200 });
+    render(
+      <ReceiverReveal
+        token="tok123"
+        budget={null}
+        copy={COPY}
+        initiallyRevealed
+        initialMatch={{ ...MATCH, wishlist: [] }}
+        previousGifts={PAST_GIFTS}
+      />,
+    );
+    expect(screen.queryByText("Photos from this year")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Photos" })).toHaveLength(1);
+  });
+
+  it("shows a photos button for years that have pictures and a card for this edition", () => {
+    requestJson.mockReset();
+    requestJson.mockResolvedValue({ ok: true, data: {}, error: null, status: 200 });
+    render(
+      <ReceiverReveal
+        token="tok123"
+        budget={null}
+        copy={COPY}
+        initiallyRevealed
+        initialMatch={{ ...MATCH, wishlist: [] }}
+        previousGifts={PAST_GIFTS}
+        currentEventCode="now001"
+      />,
+    );
+    expect(screen.getAllByRole("link", { name: "Photos" })).toHaveLength(2);
+    expect(screen.getByText("Photos from this year")).toBeTruthy();
+    expect(
+      screen
+        .getAllByRole("link", { name: "Photos" })
+        .map((link) => link.getAttribute("href")),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("/tok123/photos/now001"),
+        expect.stringContaining("/tok123/photos/past24"),
+      ]),
+    );
+    expect(screen.queryByRole("link", { name: "2025 — Cara Diaz" })).toBeNull();
+  });
+
+  it("shows this edition's photos card before unwrap", () => {
+    requestJson.mockReset();
+    requestJson.mockResolvedValue({ ok: true, data: {}, error: null, status: 200 });
+    render(
+      <ReceiverReveal
+        token="tok123"
+        budget={null}
+        copy={COPY}
+        initiallyRevealed={false}
+        initialMatch={null}
+        currentEventCode="now001"
+      />,
+    );
+    expect(screen.getByText("Photos from this year")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Photos" })).toBeTruthy();
   });
 });
 

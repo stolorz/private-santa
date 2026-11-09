@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { getEventById } from "@/lib/events";
 import { guestLinkByToken, isRevealed, loadRevealedMatch } from "@/lib/guest-link";
+import { countReadyPhotos } from "@/lib/gallery/store";
 import { listPastGiftsForGiver } from "@/lib/reveal-history";
+import { revealPageSurfaces } from "@/lib/reveal";
 import { listWishlistItems } from "@/lib/wishlist";
-import { metadataFromOg, revealOgCopy } from "@/lib/og";
+import { guestRevealMetadata } from "@/lib/og";
 import { getOgSettings } from "@/lib/settings";
 import {
   CardContent,
@@ -36,12 +38,7 @@ export async function generateMetadata({
     getOgSettings(),
     guestLinkByToken(token),
   ]);
-  if (!link) return metadataFromOg(og);
-
-  return {
-    ...metadataFromOg(og, revealOgCopy(link.giver.language)),
-    robots: { index: false, follow: false },
-  };
+  return guestRevealMetadata(og, link);
 }
 
 export default async function RevealPage({
@@ -66,20 +63,28 @@ export default async function RevealPage({
 
   const { draw, giver, assignment } = link;
   const initiallyRevealed = isRevealed(assignment);
-  const [eventRow, mine, initialMatch, templates] = await Promise.all([
+  const [eventRow, initialMatch, templates] = await Promise.all([
     getEventById(draw.eventId),
-    listWishlistItems(giver.id),
     initiallyRevealed ? loadRevealedMatch(link) : Promise.resolve(null),
     templatesForGuestPage(draw.eventId),
   ]);
-  const previousGifts = eventRow
-    ? await listPastGiftsForGiver({
-        personId: giver.personId,
-        seriesId: eventRow.seriesId,
-        occursOn: eventRow.occursOn,
-        drawId: draw.id,
-      })
-    : [];
+  const { showOwnWishlist } = revealPageSurfaces(eventRow?.occursOn);
+  // Wishlist rows and this year's ready count sit on opposite sides of
+  // the party date. Previous-year gifts load either way.
+  const [previousGifts, currentPhotoCount, mine] = await Promise.all([
+    eventRow
+      ? listPastGiftsForGiver({
+          personId: giver.personId,
+          seriesId: eventRow.seriesId,
+          occursOn: eventRow.occursOn,
+          drawId: draw.id,
+        })
+      : Promise.resolve([]),
+    eventRow && !showOwnWishlist
+      ? countReadyPhotos(eventRow.id)
+      : Promise.resolve(0),
+    showOwnWishlist ? listWishlistItems(giver.id) : Promise.resolve([]),
+  ]);
   const budgetCopy = budgetCopyForGuests(
     templates,
     giver.language,
@@ -113,24 +118,29 @@ export default async function RevealPage({
         initiallyRevealed={initiallyRevealed}
         initialMatch={initialMatch}
         previousGifts={previousGifts}
+        currentEventCode={
+          eventRow && currentPhotoCount > 0 ? eventRow.code : undefined
+        }
       >
-        <WinterCard>
-          <CardHeader className="px-6 pt-7 pb-4 sm:px-8">
-            <CardTitle className="text-xl text-foreground sm:text-2xl">
-              {copy.ownWishlistTitle}
-            </CardTitle>
-            <CardDescription className="text-base">
-              {copy.ownWishlistDescription}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 pb-7 sm:px-8">
-            <WishlistEditor
-              initial={mine}
-              token={token}
-              language={giver.language}
-            />
-          </CardContent>
-        </WinterCard>
+        {showOwnWishlist ? (
+          <WinterCard>
+            <CardHeader className="px-6 pt-7 pb-4 sm:px-8">
+              <CardTitle className="text-xl text-foreground sm:text-2xl">
+                {copy.ownWishlistTitle}
+              </CardTitle>
+              <CardDescription className="text-base">
+                {copy.ownWishlistDescription}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 pb-7 sm:px-8">
+              <WishlistEditor
+                initial={mine}
+                token={token}
+                language={giver.language}
+              />
+            </CardContent>
+          </WinterCard>
+        ) : null}
       </ReceiverReveal>
     </WinterPage>
   );

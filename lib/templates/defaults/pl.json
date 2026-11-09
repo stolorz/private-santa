@@ -42,5 +42,13 @@
   "reveal.unwrap_error": "Nie udało się odkryć wylosowanej osoby. Spróbuj ponownie.",
   "reveal.previous_title": "Poprzednie lata",
   "reveal.previous_description": "Wcześniej {giver_gender|female:przygotowywałaś|male:przygotowywałeś} prezenty dla",
-  "reveal.previous_row": "{year} — {receiver_dopelniacz}"
+  "reveal.previous_row": "{year} — {receiver_dopelniacz}",
+  "reveal.photos_button": "Zdjęcia",
+  "reveal.photos_current": "Zdjęcia z {event_dopelniacz}",
+  "reveal.gallery_title": "Zdjęcia z {event_dopelniacz}",
+  "reveal.gallery_back": "Wróć",
+  "reveal.gallery_download": "Pobierz oryginał",
+  "reveal.gallery_close": "Zamknij",
+  "reveal.gallery_previous": "Poprzednie zdjęcie",
+  "reveal.gallery_next": "Następne zdjęcie"
 }

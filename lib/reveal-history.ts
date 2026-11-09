@@ -2,6 +2,7 @@ import "server-only";
 import { and, desc, eq, lt, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db, schema, type DbHandle } from "@/lib/db";
+import { readyPhotoCountsOn } from "@/lib/gallery/store";
 import { asNameCases } from "@/lib/name-cases";
 import { isValidOccursOn } from "@/lib/occurs-on";
 import type { PastGift } from "@/lib/reveal";
@@ -31,6 +32,7 @@ export function listPastGiftsForGiverOn(
   const rows = handle
     .select({
       eventId: pastEvent.id,
+      eventCode: pastEvent.code,
       occursOn: pastEvent.occursOn,
       drawId: pastDraw.id,
       drawCreatedAt: pastDraw.createdAt,
@@ -61,18 +63,28 @@ export function listPastGiftsForGiverOn(
     .all();
 
   const seenEvents = new Set<number>();
-  const gifts: PastGift[] = [];
+  const pending: Array<PastGift & { eventId: number }> = [];
   for (const row of rows) {
     if (seenEvents.has(row.eventId)) continue;
     seenEvents.add(row.eventId);
     if (!isValidOccursOn(row.occursOn)) continue;
-    gifts.push({
+    pending.push({
       ...asNameCases(row.person),
       year: row.occursOn.slice(0, 4),
       personId: row.person.id,
+      eventCode: row.eventCode,
+      photoCount: 0,
+      eventId: row.eventId,
     });
   }
-  return gifts;
+  const counts = readyPhotoCountsOn(
+    handle,
+    pending.map((gift) => gift.eventId),
+  );
+  return pending.map(({ eventId, ...gift }) => ({
+    ...gift,
+    photoCount: counts.get(eventId) ?? 0,
+  }));
 }
 
 export async function listPastGiftsForGiver(

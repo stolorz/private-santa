@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyTemplatesView } from "@/lib/templates/fields";
 import { PREVIEW_EVENTS } from "@/lib/templates/preview-fixtures";
 import type { PreviewSample } from "@/lib/templates/preview";
@@ -59,6 +59,10 @@ function renderPreview(
 }
 
 describe("TemplatePreview", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("shows the unsaved invitation, then another sample", async () => {
     const user = userEvent.setup();
     const view = emptyTemplatesView();
@@ -128,6 +132,8 @@ describe("TemplatePreview", () => {
   });
 
   it("renders each reveal stage without calling the guest API", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-06T12:00:00.000Z"));
     const user = userEvent.setup();
     requestJson.mockReset();
     renderPreview("reveal.greeting", "Greeting", FAMILY);
@@ -139,6 +145,7 @@ describe("TemplatePreview", () => {
     ).toBeTruthy();
     expect(screen.getByText("Ciepły szalik")).toBeTruthy();
     expect(screen.queryByText("Previous years")).toBeNull();
+    expect(screen.queryByText(/Photos from Family Christmas/)).toBeNull();
     await user.click(
       screen.getByRole("button", { name: /See who you're gifting/ }),
     );
@@ -212,5 +219,32 @@ describe("TemplatePreview", () => {
     expect(screen.getByText("2025 — Zosi Kowalskiej")).toBeTruthy();
     expect(screen.getByText("2024 — Lucii Fernández")).toBeTruthy();
     expect(requestJson).not.toHaveBeenCalled();
+  });
+
+  it("replaces the own wishlist with this year's photos after the party date", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-12-25T12:00:00.000Z"));
+    renderPreview("reveal.own_wishlist", "Own wishlist", FAMILY);
+    expect(screen.queryByText("Your wishlist")).toBeNull();
+    expect(screen.getByText("Photos from Family Christmas 2026")).toBeTruthy();
+    expect(
+      screen.getAllByRole("link", { name: "Photos" }).map((link) =>
+        link.getAttribute("href"),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "/prevw1/photos/family",
+        "/prevw1/photos/fam25a",
+      ]),
+    );
+    expect(screen.getByText("2025 — Zosia Kowalska")).toBeTruthy();
+  });
+
+  it("hides the wishlist after the party even when that edition has no photos", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2027-01-07T12:00:00.000Z"));
+    renderPreview("reveal.own_wishlist", "Own wishlist", CHILDREN);
+    expect(screen.queryByText("Your wishlist")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Photos" })).toBeNull();
   });
 });

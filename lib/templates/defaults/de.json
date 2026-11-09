@@ -42,5 +42,13 @@
   "reveal.unwrap_error": "Das hat leider nicht geklappt. Versuch es bitte nochmal.",
   "reveal.previous_title": "Frühere Jahre",
   "reveal.previous_description": "In den Vorjahren hast du Geschenke vorbereitet für",
-  "reveal.previous_row": "{year} — {receiver}"
+  "reveal.previous_row": "{year} — {receiver}",
+  "reveal.photos_button": "Fotos",
+  "reveal.photos_current": "Fotos von {event}",
+  "reveal.gallery_title": "Fotos von {event}",
+  "reveal.gallery_back": "Zurück",
+  "reveal.gallery_download": "Original herunterladen",
+  "reveal.gallery_close": "Schließen",
+  "reveal.gallery_previous": "Vorheriges Foto",
+  "reveal.gallery_next": "Nächstes Foto"
 }

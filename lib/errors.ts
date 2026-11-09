@@ -41,6 +41,13 @@ export class InvitationSendError extends DomainError {
   }
 }
 
+export class GalleryError extends DomainError {
+  constructor(message: string, status = 400, code?: string) {
+    super(message, status, code);
+    this.name = "GalleryError";
+  }
+}
+
 export class SignalUnlinkedError extends DomainError {
   constructor(
     message = "Signal unlinked this device. Link again from Settings.",

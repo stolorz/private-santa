@@ -13,7 +13,7 @@ runs the edition; guests never sign up — they open a private link.
 
 - A series of dated editions. People carry over; each year starts with an empty wishlist.
 - Exclusions in both directions, with optional self-draw and “avoid last year’s pairs”.
-- A private page per guest: unwrap the match, write a wishlist, see the budget, and look back at earlier years.
+- A private page per guest: unwrap the match, write a wishlist until the party, see the budget, look back at earlier years, and open this year’s photos after the party.
 - Send that link by WhatsApp, Signal, or email. A wishlist change notifies their Secret Santa.
 - Copy in Polish, English, German, Spanish, and Japanese.
 

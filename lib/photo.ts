@@ -19,7 +19,7 @@ const MIME_BY_EXT: Record<string, string> = {
 
 const PHOTO_FILE_RE = /^[a-f0-9]{48}\.(jpg|png|webp)$/;
 
-function uploadsDir(): string {
+export function uploadsDir(): string {
   return process.env.UPLOADS_DIR ?? path.join(path.dirname(sqlitePath()), "uploads");
 }
 

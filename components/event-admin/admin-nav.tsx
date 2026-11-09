@@ -6,9 +6,11 @@ import { useTemplateErrorCount } from "@/components/settings/template-error-coun
 export function AdminNav({
   code,
   guestCount,
+  photoCount,
 }: {
   code: string;
   guestCount: number;
+  photoCount: number;
 }) {
   const base = `/e/${code}/admin`;
   const templateErrors = useTemplateErrorCount();
@@ -21,10 +23,21 @@ export function AdminNav({
           label: "Templates",
           count: templateErrors,
         },
-        { href: `${base}/guests`, label: `Guests (${guestCount})` },
+        {
+          href: `${base}/guests`,
+          label: "Guests",
+          count: guestCount,
+          countTone: "muted",
+        },
         { href: `${base}/exclusions`, label: "Exclusions" },
         { href: `${base}/draw`, label: "Draw" },
         { href: `${base}/delivery`, label: "Delivery" },
+        {
+          href: `${base}/photos`,
+          label: "Photos",
+          count: photoCount,
+          countTone: "muted",
+        },
       ]}
     />
   );

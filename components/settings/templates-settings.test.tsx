@@ -349,10 +349,8 @@ describe("TemplatesSettings", () => {
     }
 
     const { rerender } = render(<Harness showEditor />);
-    const templates = screen.getByRole("link", { name: "Templates (3)" });
-    expect(templates.querySelector(".text-destructive")?.textContent).toBe(
-      " (3)",
-    );
+    const templates = screen.getByRole("link", { name: "Templates 3" });
+    expect(templates.querySelector("[data-tab-count]")?.textContent).toBe("3");
     expect(
       screen.getByRole("button", { name: "English (2)" }).querySelector(
         ".text-destructive",
@@ -373,7 +371,7 @@ describe("TemplatesSettings", () => {
     expect(screen.getByRole("link", { name: "Templates" }).textContent).toBe(
       "Templates",
     );
-    expect(screen.queryByRole("link", { name: "Templates (3)" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Templates 3" })).toBeNull();
   });
 
   it("shows the stored Templates count before the editor opens", () => {
@@ -397,12 +395,12 @@ describe("TemplatesSettings", () => {
     }
 
     const { rerender } = render(<Harness showEditor={false} />);
-    expect(screen.getByRole("link", { name: "Templates (4)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Templates 4" })).toBeTruthy();
 
     rerender(<Harness showEditor />);
-    expect(screen.getByRole("link", { name: "Templates (3)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Templates 3" })).toBeTruthy();
 
     rerender(<Harness showEditor={false} />);
-    expect(screen.getByRole("link", { name: "Templates (4)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Templates 4" })).toBeTruthy();
   });
 });

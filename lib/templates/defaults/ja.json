@@ -42,5 +42,13 @@
   "reveal.unwrap_error": "うまく開けなかったみたい。もう一度試してみてね。",
   "reveal.previous_title": "これまでの年",
   "reveal.previous_description": "これまでにプレゼントを贈った相手",
-  "reveal.previous_row": "{year}年 — {receiver}"
+  "reveal.previous_row": "{year}年 — {receiver}",
+  "reveal.photos_button": "写真",
+  "reveal.photos_current": "{event}の写真",
+  "reveal.gallery_title": "{event}の写真",
+  "reveal.gallery_back": "戻る",
+  "reveal.gallery_download": "元の写真を保存",
+  "reveal.gallery_close": "閉じる",
+  "reveal.gallery_previous": "前の写真",
+  "reveal.gallery_next": "次の写真"
 }

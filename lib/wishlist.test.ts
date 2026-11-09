@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/lib/db/schema";
 import { first as realFirst, mockDb } from "@/test/helpers/db";
 import {
@@ -33,8 +33,12 @@ vi.mock("@/lib/wishlist-notify", () => ({
 
 import { first } from "@/lib/db";
 import {
+  addWishlistItem,
+  deleteOwnedWishlistItem,
+  listWishlistItems,
   recordWishlistChange,
   updateOwnedWishlistItem,
+  WISHLIST_CLOSED_MESSAGE,
   wishlistItemCounts,
 } from "@/lib/wishlist";
 
@@ -114,7 +118,7 @@ describe("updateOwnedWishlistItem", () => {
     notifyAdminsOfGuestActivity.mockClear();
     notifyGiverOfWishlistChange.mockClear();
     mockDb.seed(schema.eventSeries, [makeSeries()]);
-    mockDb.seed(schema.event, [makeEvent()]);
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2099-12-24" })]);
     mockDb.seed(schema.person, [makePerson({ id: 1, name: "Ada" })]);
     mockDb.seed(schema.guest, [makeGuest({ id: 1, personId: 1 })]);
     mockDb.seed(schema.wishlistItem, [
@@ -174,5 +178,79 @@ describe("updateOwnedWishlistItem", () => {
     ).resolves.toEqual(owned);
     expect(mockDb.rows(schema.wishlistItem)[0]?.text).toBe("Warm gloves");
     expect(notifyGiverOfWishlistChange).toHaveBeenCalledWith(1, "changed");
+  });
+});
+
+describe("wishlist closed after the event date", () => {
+  beforeEach(() => {
+    vi.mocked(first).mockReset();
+    vi.mocked(first).mockImplementation(realFirst);
+    notifyAdminsOfGuestActivity.mockClear();
+    notifyGiverOfWishlistChange.mockClear();
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2000-01-01" })]);
+    mockDb.seed(schema.person, [makePerson({ id: 1, name: "Ada" })]);
+    mockDb.seed(schema.guest, [makeGuest({ id: 1, personId: 1 })]);
+    mockDb.seed(schema.wishlistItem, [
+      makeWishlistItem({ id: 10, guestId: 1, text: "A scarf" }),
+    ]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("refuses add, edit, and delete", async () => {
+    await expect(addWishlistItem(1, "Warm socks")).rejects.toThrow(
+      WISHLIST_CLOSED_MESSAGE,
+    );
+    await expect(updateOwnedWishlistItem(1, 10, "Warm gloves")).rejects.toThrow(
+      WISHLIST_CLOSED_MESSAGE,
+    );
+    await expect(deleteOwnedWishlistItem(1, 10)).rejects.toThrow(
+      WISHLIST_CLOSED_MESSAGE,
+    );
+    expect(mockDb.rows(schema.wishlistItem)).toHaveLength(1);
+    expect(notifyGiverOfWishlistChange).not.toHaveBeenCalled();
+  });
+
+  it("skips the date check when the guest or event is missing", async () => {
+    await expect(updateOwnedWishlistItem(9, 10, "Nope")).rejects.toThrow(
+      "This wish was not found.",
+    );
+    mockDb.seed(schema.event, []);
+    await expect(
+      updateOwnedWishlistItem(1, 10, "Warm gloves"),
+    ).resolves.toMatchObject({
+      text: "Warm gloves",
+    });
+  });
+
+  it("treats an invalid party date as still open", async () => {
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "not-a-date" })]);
+    await expect(deleteOwnedWishlistItem(1, 10)).resolves.toBeUndefined();
+    expect(mockDb.rows(schema.wishlistItem)).toHaveLength(0);
+  });
+
+  it("still lists items after the party date", async () => {
+    await expect(listWishlistItems(1)).resolves.toEqual([
+      expect.objectContaining({ id: 10, text: "A scarf" }),
+    ]);
+  });
+
+  it("lets add through when the edition row is gone", async () => {
+    mockDb.seed(schema.event, []);
+    await expect(addWishlistItem(1, "Warm socks")).resolves.toMatchObject({
+      text: "Warm socks",
+    });
+  });
+
+  it("stays open on the party date itself (the next UTC day is the cut-off)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-12-24T23:59:59.000Z"));
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2026-12-24" })]);
+    await expect(addWishlistItem(1, "Warm socks")).resolves.toMatchObject({
+      text: "Warm socks",
+    });
   });
 });

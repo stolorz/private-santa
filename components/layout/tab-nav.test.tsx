@@ -72,12 +72,56 @@ describe("TabNav", () => {
         ]}
       />,
     );
-    const templates = screen.getByRole("link", { name: "Templates (3)" });
-    const count = templates.querySelector(".text-destructive");
-    expect(count?.textContent).toBe(" (3)");
+    const templates = screen.getByRole("link", { name: "Templates 3" });
+    const count = templates.querySelector("[data-tab-count]");
+    expect(count?.textContent).toBe("3");
+    expect(count?.className).toContain("text-destructive");
+    expect(templates.querySelector("span")?.className).toContain(
+      "whitespace-nowrap",
+    );
     expect(templates.querySelector("span")?.className).toContain("bg-primary");
     const integrations = screen.getByRole("link", { name: "Integrations" });
     expect(integrations.textContent).toBe("Integrations");
-    expect(integrations.querySelector(".text-destructive")).toBeNull();
+    expect(integrations.querySelector("[data-tab-count]")).toBeNull();
+  });
+
+  it("shows a muted tally chip on inventory counts", () => {
+    pathname = "/e/abcdef/admin/guests";
+    render(
+      <TabNav
+        tabs={[
+          {
+            href: "/e/abcdef/admin/guests",
+            label: "Guests",
+            count: 12,
+            countTone: "muted",
+          },
+          {
+            href: "/e/abcdef/admin/photos",
+            label: "Photos",
+            count: 4,
+            countTone: "muted",
+          },
+          {
+            href: "/e/abcdef/admin/templates",
+            label: "Templates",
+            count: 2,
+          },
+        ]}
+      />,
+    );
+    const guests = screen.getByRole("link", { name: "Guests 12" });
+    const guestsCount = guests.querySelector("[data-tab-count]");
+    expect(guestsCount?.getAttribute("data-tab-count")).toBe("12");
+    expect(guestsCount?.className).toContain("text-primary-foreground");
+    expect(guestsCount?.className).not.toContain("text-destructive");
+    const photos = screen.getByRole("link", { name: "Photos 4" });
+    const photosCount = photos.querySelector("[data-tab-count]");
+    expect(photosCount?.className).toContain("text-muted-foreground");
+    expect(photosCount?.className).not.toContain("text-destructive");
+    const templates = screen.getByRole("link", { name: "Templates 2" });
+    expect(templates.querySelector("[data-tab-count]")?.className).toContain(
+      "text-destructive",
+    );
   });
 });

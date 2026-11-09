@@ -24,6 +24,9 @@ Typical production:
 | `data/santa.sqlite` | Live database. Never overwrite while syncing code. |
 | `data/server.log` | stdout/stderr of `npm start` |
 | `data/server.pid` | Supervisor pid from `ensure-running.sh` |
+| `data/photo-worker.pid` | Photo encoder pid from `ensure-photo-worker.sh` |
+| `data/photo-worker.heartbeat` | Millisecond timestamp; stale after 15s in the admin UI, 20s in the ensure script |
+| `data/photo-worker.log` | Encoder stdout/stderr |
 | web-root proxy | Copy of `deploy/santa-app-proxy.php` with your prefix/host |
 
 **Never overwrite `data/` or `.env` when syncing.**
@@ -31,9 +34,9 @@ Typical production:
 ## Backup
 
 Copy the SQLite file (`SQLITE_PATH`, default `data/santa.sqlite`), guest
-photos in `data/uploads` (or `UPLOADS_DIR`), and, when Signal is linked,
-`SIGNAL_STORE_DIR` (default `data/signal`). Do not overwrite these when
-syncing code.
+and gallery photos in `data/uploads` (or `UPLOADS_DIR`, including
+`gallery/`), and, when Signal is linked, `SIGNAL_STORE_DIR` (default
+`data/signal`). Do not overwrite these when syncing code.
 
 ## Sync
 
@@ -73,8 +76,14 @@ On the server:
 | Settings → Templates | `rsync --delete` overwrites `lib/templates/defaults/*.json`. Commit those files from the checkout you edited. Edition wording is in SQLite, not git. |
 | `deploy/santa-app-proxy.php` | Copy into the web root; set `$prefix`, `$backend`, `$forwardedHost` |
 | Server process | Stop pid in `data/server.pid`, wait for the port, run `deploy/ensure-running.sh` |
+| Photo worker | `deploy/ensure-photo-worker.sh` (starts `start-photo-worker.sh` under `nice -n 10`) |
 
-Cron example: `* * * * * /path/to/secret-santa/deploy/ensure-running.sh`
+Cron example:
+
+```
+* * * * * /path/to/secret-santa/deploy/ensure-running.sh
+* * * * * /path/to/secret-santa/deploy/ensure-photo-worker.sh
+```
 
 Production `.env` must set `ADMIN_EMAIL`. The first signup has to use that
 address. Later signups are rejected.

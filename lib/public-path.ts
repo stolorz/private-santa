@@ -24,6 +24,33 @@ export function revealApiPath(token: string, path = ""): string {
   return apiPath(`/api/reveal/${encodeURIComponent(token)}${p}`);
 }
 
+/** Page path for `<Link>`. Next prefixes `basePath`; do not prepend it here. */
+export function galleryPath(token: string, code: string): string {
+  return `/${encodeURIComponent(token)}/photos/${encodeURIComponent(code)}`;
+}
+
+export function galleryMediaPath(
+  token: string,
+  photoId: string,
+  variant: string,
+): string {
+  return revealApiPath(
+    token,
+    `/photos/${encodeURIComponent(photoId)}/${encodeURIComponent(variant)}`,
+  );
+}
+
+export function adminGalleryMediaPath(
+  code: string,
+  photoId: string,
+  variant: string,
+): string {
+  return eventApiPath(
+    code,
+    `/photos/${encodeURIComponent(photoId)}/${encodeURIComponent(variant)}`,
+  );
+}
+
 export function photoUrl(filename: string | null | undefined): string | null {
   if (!filename) return null;
   return apiPath(`/api/uploads/${encodeURIComponent(filename)}`);

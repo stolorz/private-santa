@@ -1,11 +1,13 @@
 # API catalog
 
-34 `route.ts` files under `app/api/`. Almost every handler is wrapped by
+42 `route.ts` files under `app/api/`. Almost every handler is wrapped by
 `route()` in `lib/api.ts`. JSON errors are always `{ "error": "<message>" }`.
 There is no collection GET for people (the settings page loads via RSC).
 
 Client URL helpers: `apiPath`, `eventApiPath(code, path)`, `revealApiPath(token)`,
-`photoUrl` in `lib/public-path.ts` (they prepend `NEXT_PUBLIC_BASE_PATH`).
+`galleryMediaPath`, `adminGalleryMediaPath`, `photoUrl` in
+`lib/public-path.ts` (they prepend `NEXT_PUBLIC_BASE_PATH`).
+`galleryPath` is a page path for `<Link>` and is not prefixed.
 The browser never throws on failed fetches: `lib/fetch-json.ts` returns
 `{ ok, data, error, status }`.
 
@@ -240,6 +242,53 @@ pairings from earlier editions (when `avoidPastPairings` is active).
 **400:** no draw, nothing to send, action disabled (missing or invalid party date — `Cannot send invitations because the event has no valid party date. Set the date before sending, because guest messages include it.` — past event, missing budget choice — `Choose a budget, make-the-gift, or no spending limit.` — a blank budget sentence for a guest language, missing gender naming the guests, missing Polish cases naming the guests, templates that do not parse — `Cannot send invitations because 1 template is not valid: …`, etc.)  
 **Calls:** `sendInvitations`
 
+### `GET /api/e/[code]/photos`
+
+**Auth:** `eventAdmin`  
+**200:** `{ photos: EventPhotoView[], workerAlive }`  
+`workerAlive` is true when `data/photo-worker.heartbeat` is no older than 15 seconds.
+
+### `POST /api/e/[code]/photos/uploads`
+
+**Auth:** `eventAdmin`  
+**Body:** `{ filename, size, capturedAt? }` (`capturedAt` is a finite epoch ms or null)  
+**201:** `{ uploadId, chunkSize, chunkCount }`  
+**400:** `"Invalid upload."` / `"Photo is required."` / `"Photo must be 25 MB or smaller."` / `"A file name is required."`  
+**Calls:** `initGalleryUpload`
+
+### `PUT /api/e/[code]/photos/uploads/[uploadId]/[index]`
+
+**Auth:** `eventAdmin`  
+Raw 1 MB body (last chunk may be shorter).  
+**200:** `{ ok: true }`  
+**400:** `"Unknown upload."` / `"Invalid chunk."`
+
+### `POST /api/e/[code]/photos/uploads/[uploadId]/complete`
+
+**Auth:** `eventAdmin`  
+**201:** `{ id }` — writes `event_photo` + four `event_photo_variant` jobs  
+**400:** incomplete upload, not JPEG/PNG/WebP/HEIC, or unreadable JPEG/PNG/WebP (`"Could not read that photo."`)
+
+### `DELETE /api/e/[code]/photos/[id]`
+
+**Auth:** `eventAdmin`  
+**200:** `{ ok: true }`  
+**404:** `"Unknown photo."`
+
+### `POST /api/e/[code]/photos/[id]/retry`
+
+**Auth:** `eventAdmin`  
+**200:** `{ ok: true }`  
+**400:** `"Nothing to retry."`  
+**404:** `"Unknown photo."`
+
+### `GET /api/e/[code]/photos/[id]/{thumb|hd|fhd|uhd|original}`
+
+**Auth:** `eventAdmin`  
+Ready AVIF: `image/avif`, `Cache-Control: private, max-age=31536000, immutable`, `nosniff`.  
+`original` is an attachment with the original filename.  
+**404:** `"Unknown photo."` with `no-store` when the file or variant is missing.
+
 ## People (global)
 
 No `GET /api/people`. RSC: `listPeopleWithEvents` on settings/people.
@@ -303,7 +352,8 @@ caught up (including the first unwrap).
 **Auth:** `guest`, rate limit `guest`  
 **Body:** `{ text }` min 1  
 **201:** inserted item. Push-notifies admins **without** the item text. Claims a
-giver notice (Signal and email) when the current draw has another santa.
+giver notice (Signal and email) when the current draw has another santa.  
+**400:** `"The wishlist cannot be changed after the event date."`
 
 ### `PATCH /api/reveal/[token]/wishlist/[id]`
 
@@ -312,7 +362,7 @@ giver notice (Signal and email) when the current draw has another santa.
 **200:** the updated `WishlistItem`. Same text is a no-op (no clock bump, no
 notice). A real edit bumps `wishlistUpdatedAt` and uses the “changed”
 giver notice. Does not ping organisers.  
-**400:** `"Invalid wishlist item."`  
+**400:** `"Invalid wishlist item."` or `"The wishlist cannot be changed after the event date."`  
 **404:** `"This wish was not found."` when missing or not owned by the giver.
 
 ### `DELETE /api/reveal/[token]/wishlist/[id]`
@@ -320,7 +370,17 @@ giver notice. Does not ping organisers.
 **Auth:** `guest`, `id: true`  
 **200:** `{ ok: true }` even if missing or not owned (silent no-op). A real
 delete bumps the clock and uses the “removed” giver notice. Does not ping
-organisers.
+organisers.  
+**400:** `"The wishlist cannot be changed after the event date."`
+
+### `GET /api/reveal/[token]/photos/[id]/{thumb|hd|fhd|uhd|original}`
+
+**Auth:** `guest`  
+Same bytes as the admin media route. Guests only see a photo after `thumb`
+is `done`, and only for the token's own edition after its party date, or an
+earlier series edition where that person was a giver.  
+Ready variants: `image/avif`, `private, max-age=31536000, immutable`.  
+**404:** `"This link is invalid."` with `no-store`
 
 ## Settings — safety
 

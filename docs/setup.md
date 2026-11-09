@@ -20,6 +20,7 @@ cp .env.example .env
 
 npm run db:migrate
 npm run dev      # http://localhost:3000
+npm run photos:worker   # optional; needed to encode gallery photos
 ```
 
 Settings → Safety shows whether the app is using `BETTER_AUTH_SECRET` or
@@ -43,9 +44,9 @@ before `npm run build` so guest links use the right domain.
 
 ## Backup
 
-Copy `SQLITE_PATH` (default `data/santa.sqlite`), guest photos in
-`data/uploads` (or `UPLOADS_DIR`), and, when you use Signal, the
-`SIGNAL_STORE_DIR` folder (default `data/signal`).
+Copy `SQLITE_PATH` (default `data/santa.sqlite`), guest and gallery
+photos in `data/uploads` (or `UPLOADS_DIR`, including `gallery/`), and,
+when you use Signal, the `SIGNAL_STORE_DIR` folder (default `data/signal`).
 
 ## Integrations
 
@@ -93,4 +94,5 @@ notifications in the Push section.
 | `npm run db:push` | Push schema without a migration file |
 | `npm run db:studio` | Open Drizzle Studio |
 | `npm run signal:link` | Link Signal as a secondary device |
+| `npm run photos:worker` | Encode edition gallery AVIF variants (separate process) |
 | `npm run email:art` | Render email banner SVGs into `public/email/` |

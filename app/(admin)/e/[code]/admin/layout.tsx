@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { eventLabel } from "@/lib/event-code";
 import { getEventWithSeriesByCode } from "@/lib/events";
 import { eventOgCopy, metadataFromOg } from "@/lib/og";
+import { countEventPhotos } from "@/lib/gallery/store";
 import { guestsForEvent } from "@/lib/people";
 import { getOgSettings } from "@/lib/settings";
 import { requireAdminPage } from "@/lib/session";
@@ -42,9 +43,10 @@ export default async function EventAdminLayout({
 
   const found = await getEventWithSeriesByCode(code);
   if (!found) notFound();
-  const [guests, templates] = await Promise.all([
+  const [guests, templates, photoCount] = await Promise.all([
     guestsForEvent(found.event.id),
     getEventTemplates(found.event.id),
+    countEventPhotos(found.event.id),
   ]);
   const templateErrors = templateErrorTotal(templates);
 
@@ -64,7 +66,11 @@ export default async function EventAdminLayout({
         }
       />
       <TemplateErrorCountProvider count={templateErrors}>
-        <AdminNav code={found.event.code} guestCount={guests.length} />
+        <AdminNav
+          code={found.event.code}
+          guestCount={guests.length}
+          photoCount={photoCount}
+        />
         {children}
       </TemplateErrorCountProvider>
     </PageShell>

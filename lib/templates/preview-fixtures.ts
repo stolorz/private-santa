@@ -31,6 +31,8 @@ export type PreviewPastGift = {
   giverId: string;
   year: number;
   receiverId: string;
+  eventCode?: string;
+  photoCount?: number;
 };
 
 export type PreviewEvent = EventNameFields &
@@ -46,6 +48,8 @@ export type PreviewEvent = EventNameFields &
   guestIds: readonly string[];
   guests: readonly PreviewGuest[];
   previousGifts?: readonly PreviewPastGift[];
+  /** Ready photos on this preview edition, so the Photos card can show. */
+  photoCount?: number;
 };
 
 type NameCasesOnly = Pick<
@@ -334,13 +338,14 @@ export const PREVIEW_EVENTS: readonly PreviewEvent[] = [
     locationGdzie: "w Katowicach",
     ...amountBudget(50, "EUR", 50, 215, 8000),
     guestIds: ["anna", "piotr", "zosia", "aleksander", "maria", "hans"],
+    photoCount: 4,
     previousGifts: [
-      { giverId: "anna", year: 2025, receiverId: "zosia" },
-      { giverId: "anna", year: 2024, receiverId: "lucia" },
-      { giverId: "piotr", year: 2025, receiverId: "aleksander" },
-      { giverId: "piotr", year: 2024, receiverId: "maria" },
-      { giverId: "zosia", year: 2025, receiverId: "anna" },
-      { giverId: "aleksander", year: 2024, receiverId: "hans" },
+      { giverId: "anna", year: 2025, receiverId: "zosia", eventCode: "fam25a", photoCount: 6 },
+      { giverId: "anna", year: 2024, receiverId: "lucia", eventCode: "fam24a", photoCount: 0 },
+      { giverId: "piotr", year: 2025, receiverId: "aleksander", eventCode: "fam25a", photoCount: 6 },
+      { giverId: "piotr", year: 2024, receiverId: "maria", eventCode: "fam24a", photoCount: 0 },
+      { giverId: "zosia", year: 2025, receiverId: "anna", eventCode: "fam25a", photoCount: 6 },
+      { giverId: "aleksander", year: 2024, receiverId: "hans", eventCode: "fam24a", photoCount: 0 },
     ],
   }),
   withGuests({

@@ -28,6 +28,7 @@ Root layout (`app/layout.tsx`): fonts, OG metadata, `JapaneseFontLoader`. No nav
 | `/login/reset` | `app/(public)/(auth)/login/reset/page.tsx` | Public. `?token=` from the email redirect, or `?error=INVALID_TOKEN`. Success returns to `/login` |
 | `/signup` | `app/(public)/(auth)/signup/page.tsx` | Public, first user only. Rendered per request so the organiser check uses the server database. Form POSTs `/api/signup` (not Better Auth `signUp`) |
 | `/{token}` | `app/(public)/[token]/page.tsx` | Token. Valid: edition templates, localized OG in the giver's language (no names), `robots: noindex`. Invalid: JSON reference copy, site OG, not Next.js 404 |
+| `/{token}/photos/{code}` | `app/(public)/[token]/photos/[code]/page.tsx` | Token. Same OG as the reveal page (`noindex`, no names). Unknown token, the token’s own edition before its party date, or an edition the person did not take part in: invalid-link copy |
 
 Guest tokens are 6-char `[0-9a-z]`. Minting skips reserved first
 segments (`login`, `signup`, `events`, `settings`, `e`, `api`, `_next`) in
@@ -44,6 +45,7 @@ segments (`login`, `signup`, `events`, `settings`, `e`, `api`, `_next`) in
 | `/e/[code]/admin/exclusions` | `…/admin/exclusions/page.tsx` | admin |
 | `/e/[code]/admin/draw` | `…/admin/draw/page.tsx` | admin |
 | `/e/[code]/admin/delivery` | `…/admin/delivery/page.tsx` | admin |
+| `/e/[code]/admin/photos` | `…/admin/photos/page.tsx` | admin |
 | `/settings` | `app/(admin)/settings/page.tsx` | Redirect → `/settings/integrations` |
 | `/settings/integrations` | `…/integrations/page.tsx` | `requireAdminPage()` via settings layout |
 | `/settings/templates` | `…/templates/page.tsx` | admin |
@@ -53,7 +55,7 @@ segments (`login`, `signup`, `events`, `settings`, `e`, `api`, `_next`) in
 PWA `start_url` is `/events` (`app/manifest.ts`).
 
 Event admin tabs (`components/event-admin/admin-nav.tsx`): General,
-Templates, Guests, Exclusions, Draw, Delivery. Settings tabs: Integrations,
+Templates, Guests, Exclusions, Draw, Delivery, Photos. Settings tabs: Integrations,
 Templates (JSON reference for all editions), Guests (people directory),
 Safety.
 
@@ -93,7 +95,7 @@ Session (`lib/session.ts`): `getCurrentUser()` is request-cached.
 |---|---|---|
 | Organiser (admin) | `/signup` once (email verify if env SMTP is set), then `/login` | Events, edition admin, settings, PWA push |
 | Signed-in non-admin | leftover `role: "user"` | `/events` empty copy. `GET /api/events` returns `[]` |
-| Guest | `/{token}` | Reveal + own wishlist; previous years after unwrap if they gave before. No account |
+| Guest | `/{token}` | Reveal + own wishlist until the party date; previous years after unwrap if they gave before; this year’s photos after the party, plus earlier years they gave. No account |
 
 API 401 vs 403: anonymous → 401; signed-in non-admin → 403.
 
@@ -109,7 +111,8 @@ API 401 vs 403: anonymous → 401; signed-in non-admin → 403.
                                  ├─ /e/:code/admin/guests
                                  ├─ /e/:code/admin/exclusions
                                  ├─ /e/:code/admin/draw     run leftover fill, export CSV
-                                 └─ /e/:code/admin/delivery send invitations
+                                 ├─ /e/:code/admin/delivery send invitations
+                                 └─ /e/:code/admin/photos   upload gallery photos
                             /settings/{integrations,templates,people,safety}
 ```
 
@@ -121,10 +124,12 @@ reveal date. Delivery builds `guestPortalUrl` → `{origin}{basePath}/{token}`.
 
 ```
 /{token}
-  GET page                          greeting, unwrap, own wishlist, previous years after unwrap; OG in giver language
+  GET page                          greeting, unwrap, own wishlist until the party date, photos afterwards if any, previous years after unwrap; OG in giver language
+  GET /{token}/photos/{code}        edition gallery (own year after its date + earlier years this person gave)
   POST /api/reveal/:token/open      first browser open (organiser push)
   POST /api/reveal/:token           unwrap → { match } (no contact)
   GET/POST/PATCH/DELETE /api/reveal/:token/wishlist*
+  GET /api/reveal/:token/photos/:id/:variant  AVIF or original download
 ```
 
 Open / unwrap / wishlist-seen are `auth: "public"` plus a token lookup so
@@ -137,7 +142,9 @@ this repo: `/your-prefix`). The live value belongs in gitignored `ops/`.
 
 - Next.js `basePath` in `next.config.ts` prefixes pages and static assets.
 - `fetch("/api/…")` does **not** get the prefix. Use `apiPath` /
-  `eventApiPath` / `revealApiPath` / `photoUrl` from `lib/public-path.ts`.
+  `eventApiPath` / `revealApiPath` / `galleryMediaPath` /
+  `adminGalleryMediaPath` / `photoUrl` from `lib/public-path.ts`.
+  Guest gallery pages use `galleryPath` in `<Link>` (Next prefixes it).
 - Better Auth handler (`app/api/auth/[...all]/route.ts`) restores the prefix
   Next strips from `request.url` (`withAuthPath`).
 - `NEXT_PUBLIC_APP_URL` is baked into the client at **build time**.
@@ -148,7 +155,7 @@ this repo: `/your-prefix`). The live value belongs in gitignored `ops/`.
 |---|---|---|
 | `PageShell` | `components/layout/page-shell.tsx` | Admin pages (`max-w-2xl`) |
 | `CenteredCard` | same | Login / signup |
-| `WinterPage` / `WinterCard` | `components/festive/winter-page.tsx` | Home, reveal, auth. `contained` clips the sky inside the template preview |
+| `WinterPage` / `WinterCard` | `components/festive/winter-page.tsx` | Home, reveal, auth. `contained` clips the sky inside the template preview. `wide` is the guest gallery column (`max-w-4xl` from `lg`) |
 | `FestiveAtmosphere` | `components/festive/festive-atmosphere.tsx` | All `(admin)` pages |
 | `PageHeader` | `components/layout/page-header.tsx` | Event admin + settings titles |
 | `TabNav` | `components/layout/tab-nav.tsx` | Shared segmented tabs |
@@ -163,7 +170,12 @@ this repo: `/your-prefix`). The live value belongs in gitignored `ops/`.
 | `keepSignalLinked` (`go-signal receive`) | 30s | 12h |
 | `pollEmailBounces` | 8s | 60s |
 
-Keep the Node process running in production so these stay alive.
+Photo encoding is **not** in-process. Completing an upload sniffs the
+file and reads header dimensions; `npm run photos:worker` runs
+`scripts/photo-worker.ts` against the same SQLite file (WAL +
+`busy_timeout`). Production: `deploy/ensure-photo-worker.sh` (pid +
+heartbeat no older than 20s). Keep the Node process running in production
+so Signal and bounce jobs stay alive.
 
 ## Deploy
 

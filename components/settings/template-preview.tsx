@@ -285,12 +285,19 @@ function RevealPreviewStage({
           initiallyRevealed={phase === "unwrapped"}
           initialMatch={preview.match}
           previousGifts={preview.previousGifts}
+          currentEventCode={
+            preview.currentPhotoCount > 0
+              ? preview.currentEventCode
+              : undefined
+          }
         >
-          <OwnWishlist
-            title={preview.copy.ownWishlistTitle}
-            description={preview.copy.ownWishlistDescription}
-            items={preview.ownWishlist}
-          />
+          {preview.showOwnWishlist ? (
+            <OwnWishlist
+              title={preview.copy.ownWishlistTitle}
+              description={preview.copy.ownWishlistDescription}
+              items={preview.ownWishlist}
+            />
+          ) : null}
         </ReceiverReveal>
       </WinterPage>
     );

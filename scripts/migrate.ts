@@ -118,6 +118,9 @@ try {
   ) {
     console.log("Applied 0011 (drizzle skipped it on this database).");
   }
+  if (applySkippedMigration("0012_event_photos.sql", "event_photo", "event_id")) {
+    console.log("Applied 0012 (drizzle skipped it on this database).");
+  }
   const snapped = materializeMissingEventTemplatesOn(
     db as never,
     readReferenceTemplates(),

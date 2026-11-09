@@ -33,6 +33,9 @@ const nextConfig: NextConfig = {
     "qrcode",
     "nodemailer",
     "imapflow",
+    "sharp",
+    "heic-convert",
+    "exifr",
   ],
 };
 

@@ -421,6 +421,63 @@ export const eventTemplate = sqliteTable(
   ],
 );
 
+export type PhotoVariantName = "thumb" | "hd" | "fhd" | "uhd";
+export type PhotoVariantStatus = "pending" | "running" | "done" | "error";
+
+/**
+ * One organiser-uploaded photo on an edition gallery. Guests see a row
+ * only after the `thumb` variant is `done`. Files live under
+ * `UPLOADS_DIR/gallery/{id}/`.
+ */
+export const eventPhoto = sqliteTable(
+  "event_photo",
+  {
+    id: text("id").primaryKey(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    originalName: text("original_name").notNull(),
+    mime: text("mime").notNull(),
+    ext: text("ext").notNull(),
+    size: integer("size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    capturedAt: ts("captured_at").notNull(),
+    uploadedAt: ts("uploaded_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("event_photo_event_id_idx").on(t.eventId),
+    index("event_photo_event_captured_idx").on(t.eventId, t.capturedAt),
+  ],
+);
+
+export const eventPhotoVariant = sqliteTable(
+  "event_photo_variant",
+  {
+    id: id(),
+    photoId: text("photo_id")
+      .notNull()
+      .references(() => eventPhoto.id, { onDelete: "cascade" }),
+    variant: text("variant").$type<PhotoVariantName>().notNull(),
+    status: text("status")
+      .$type<PhotoVariantStatus>()
+      .notNull()
+      .default("pending"),
+    error: text("error"),
+    durationMs: integer("duration_ms"),
+    bytes: integer("bytes"),
+  },
+  (t) => [
+    uniqueIndex("event_photo_variant_photo_variant_unique").on(
+      t.photoId,
+      t.variant,
+    ),
+    index("event_photo_variant_status_idx").on(t.status, t.variant),
+  ],
+);
+
 export type User = typeof user.$inferSelect;
 export type EventSeries = typeof eventSeries.$inferSelect;
 export type Event = typeof event.$inferSelect;
@@ -434,6 +491,8 @@ export type GuestActivity = typeof guestActivity.$inferSelect;
 export type WishlistItem = typeof wishlistItem.$inferSelect;
 export type AppSetting = typeof appSetting.$inferSelect;
 export type EventTemplate = typeof eventTemplate.$inferSelect;
+export type EventPhoto = typeof eventPhoto.$inferSelect;
+export type EventPhotoVariant = typeof eventPhotoVariant.$inferSelect;
 export type PushSubscription = typeof pushSubscription.$inferSelect;
 
 /** Guest seat with the person's name/phone/email/login resolved. */

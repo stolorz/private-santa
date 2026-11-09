@@ -30,6 +30,7 @@
   },
   "include": [
     "next-env.d.ts",
+    "heic-convert.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

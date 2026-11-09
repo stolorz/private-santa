@@ -42,5 +42,13 @@
   "reveal.unwrap_error": "Could not open your draw. Please try again.",
   "reveal.previous_title": "Previous years",
   "reveal.previous_description": "Previously you have prepared presents for",
-  "reveal.previous_row": "{year} — {receiver}"
+  "reveal.previous_row": "{year} — {receiver}",
+  "reveal.photos_button": "Photos",
+  "reveal.photos_current": "Photos from {event}",
+  "reveal.gallery_title": "Photos from {event}",
+  "reveal.gallery_back": "Back",
+  "reveal.gallery_download": "Download original",
+  "reveal.gallery_close": "Close",
+  "reveal.gallery_previous": "Previous photo",
+  "reveal.gallery_next": "Next photo"
 }

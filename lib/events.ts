@@ -28,6 +28,8 @@ import {
 } from "@/lib/budget";
 import { EventError } from "@/lib/errors";
 import { guestsForEvent, peopleExclusiveToEvent } from "@/lib/people";
+import { photoIdsForEventOn } from "@/lib/gallery/store";
+import { deleteGalleryPhotoDir } from "@/lib/gallery/paths";
 import { deletePhoto } from "@/lib/photo";
 import { requestCache } from "@/lib/request-cache";
 import type { EventPatch } from "@/lib/schemas";
@@ -573,6 +575,7 @@ export async function deleteEdition(
 
   const seriesId = event.seriesId;
   const photos: (string | null)[] = [];
+  const galleryIds = photoIdsForEventOn(db, event.id);
   db.transaction((tx) => {
     if (deletePersonIds.length > 0) {
       const { exclusive, notSeated, shared } = peopleExclusiveToEvent(
@@ -614,5 +617,8 @@ export async function deleteEdition(
 
   for (const photo of photos) {
     await deletePhoto(photo);
+  }
+  for (const id of galleryIds) {
+    await deleteGalleryPhotoDir(id);
   }
 }

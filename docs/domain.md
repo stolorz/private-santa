@@ -319,10 +319,10 @@ Mail uses `bannerSrc` so the winter banner loads as a normal image.
 
 | File | Role |
 |---|---|
-| `lib/reveal.ts` | `isRevealed` ⇔ `revealCount > 0`. `RevealedMatch` and `PastGift` types |
-| `lib/reveal-history.ts` | Past gifts for the reveal page: same series, earlier `occursOn`, newest draw per edition, current person names. Does not require the receiver to be seated this year (unlike solver history) |
+| `lib/reveal.ts` | `isRevealed` ⇔ `revealCount > 0`. `RevealedMatch` and `PastGift` types (`eventCode`, `photoCount`). `revealPageSurfaces` hides this year’s photos and keeps the giver wishlist until `isOccursOnPast` |
+| `lib/reveal-history.ts` | Past gifts for the reveal page: same series, earlier `occursOn`, newest draw per edition, current person names, ready-thumbnail counts. Does not require the receiver to be seated this year (unlike solver history) |
 | `lib/guest-link.ts` | Token → assignment + giver + receiver. Open/unwrap/seen. Unwrap and wishlist-seen stamp `wishlistSeenAt` and clear `wishlistNotifyClaim` |
-| `lib/wishlist.ts` | CRUD (add / edit / delete); bumps `wishlistUpdatedAt`; organiser push on add without text; giver notice via `wishlist-notify` |
+| `lib/wishlist.ts` | CRUD (add / edit / delete); bumps `wishlistUpdatedAt`; organiser push on add without text; giver notice via `wishlist-notify`. Add / edit / delete refuse after the event date (`The wishlist cannot be changed after the event date.`). A missing guest or edition stays open |
 | `lib/wishlist-notify.ts` | Atomic `wishlistNotifyClaim`; Signal + email to the giver; skip if giver or receiver has no gender; release the matching token when nothing delivered |
 | `lib/request-meta.ts` | IP from `x-forwarded-for` / `x-real-ip` / `cf-connecting-ip` |
 | `lib/user-agent.ts` | Best-effort browser/OS for `guest_activity` |
@@ -339,6 +339,18 @@ another series, or a later `occursOn`. Newest year first. Invalid
 
 | File | Role |
 |---|---|
+| `lib/gallery/constants.ts` | Ids, chunk size (1 MB), 25 MB cap (`GALLERY_TOO_LARGE_MESSAGE`), AVIF q50/effort 9, variant sizes |
+| `lib/gallery/paths.ts` | `UPLOADS_DIR/gallery/{id}/`, temp uploads, heartbeat file |
+| `lib/gallery/encode.ts` | Complete uses `imageDimensions` (headers + EXIF swap; HEIC 1×1). `orientedBuffer` (HEIC via `heic-convert`, sharp raw sRGB) is worker-only, then AVIF variants |
+| `lib/gallery/jobs.ts` | Claim / finish / retry / sweep on a DB handle (`…On(handle)`). First successful variant writes real width/height. Caches one oriented frame so a photo’s later sizes can skip a re-decode; thumbs-first means a batch still decodes again for hd/fhd/uhd |
+| `lib/gallery/worker.ts` | Loop used by `scripts/photo-worker.ts`. `installPhotoWorkerSignals` binds SIGTERM / SIGINT |
+| `lib/gallery/upload.ts` | Chunked organiser upload → sniff + header size + original + four pending variants |
+| `lib/gallery/store.ts` | List / `countEventPhotos` / `countReadyPhotos` / delete / retry. Guest and admin media GETs load photo + edition + variant in one join. Guests see `thumb === done` |
+| `lib/gallery/access.ts` | Token may open its own edition after that edition’s party date is past, plus earlier series editions it gave in (`EXISTS` a giver assignment; same set as `listPastGiftsForGiverOn`, without names or photo counts) |
+| `lib/gallery/media.ts` | Stream AVIF (`immutable`) or original attachment |
+| `lib/gallery/view.ts` | Lightbox variant pick, swipe, zoom, keys (tested; used by the UI) |
+| `lib/gallery/status.ts` | Client-safe processing / failed / poll helpers |
+| `lib/gallery/upload-client.ts` | Browser chunked upload with retries. Pools 3 files and 3 chunks of each file |
 | `lib/photo.ts` | `UPLOADS_DIR` or `{sqliteDir}/uploads`. Filename 48 hex + ext. Max 2 MB |
 | `lib/photo-process.ts` | Scale longest edge ≤ 1200 (`scaleToMaxEdge`, `downscalePyramid` for the halving steps). `coverMinZoom` is the farthest zoom-out that still covers the circle. `clampCropRect` keeps a crop inside the source image |
 | `lib/budget.ts` | `amount` / `zero` / `unlimited`. EUR/PLN/JPY extras, humanize, guest-facing snapshot. `formatBudget` prints the amount in the template language (Polish `100 zł` / `1 000 ¥`, English `€100` / `PLN 100` / `¥1,200`, Japanese `€100 (約3,000円)` / `100 PLN (約4,000円)` / `1,200円`, German `1.000,00 PLN`, Spanish space thousands) |
@@ -372,11 +384,11 @@ Test hooks: `setFxFetch`, `setFxNow`, `resetFxInflight`.
 | `lib/settings.ts` | KV get/set. Blank deletes. `cachedSetting` is process-wide (`globalThis`) so API writes invalidate RSC reads; in-flight reads that finish after a write are dropped. Test hook: `setSettingMapLoad` |
 | `lib/integrations.ts` | DB-only WA / SMTP+IMAP / VAPID. Secrets hidden. WhatsApp needs a stored template language, push needs a subject, and bounce polling needs a stored IMAP host. A blank SMTP port connects as 587 and a blank IMAP port as 993 |
 | `lib/integrations-types.ts` | View types |
-| `lib/og.ts` | Site title/description/icon/banner. Reveal OG = localized generic copy + `og-banner-{lang}.jpg`; never names |
+| `lib/og.ts` | Site title/description/icon/banner. Reveal OG = localized generic copy + `og-banner-{lang}.jpg`; never names. `guestRevealMetadata` is the shared guest-page helper |
 | `lib/api.ts` | `route()`, `parseJson`, `parseRouteId`, `catchDomainErrors` |
 | `lib/http.ts` | Status helpers including 429 `tooManyRequests` |
-| `lib/errors.ts` | `DomainError` subclasses |
-| `lib/public-path.ts` | `basePath`, guest URLs, auth origin |
+| `lib/errors.ts` | `DomainError` subclasses (`GalleryError` included) |
+| `lib/public-path.ts` | `basePath`, guest URLs, gallery URLs, auth origin |
 | `lib/fetch-json.ts` | Client fetch that never throws |
 | `lib/request-cache.ts` | `react.cache` wrapper (identity in tests) |
 | `lib/process-singleton.ts` | Survive Next hot reload |
@@ -395,7 +407,8 @@ Import must not throw during `next build`.
 |---|---|
 | `instrumentation.ts` | Boot hook → `startBackgroundJobs` |
 | `lib/background-jobs.ts` | Signal 30s/12h, bounce 8s/60s. Idempotent |
-| `scripts/migrate.ts` | Runtime migrator + squash-skip sentinels for 0001–0005 |
+| `scripts/migrate.ts` | Runtime migrator + squash-skip sentinels for 0001–0005 and 0012 |
+| `scripts/photo-worker.ts` | Separate process: reset `running` jobs, encode one variant at a time, heartbeat every 5s |
 | `scripts/signal-link.ts` | CLI alternative to Settings QR link |
 | `scripts/render-email-art.tsx` | Rasterise winter SVG → email banner and per-language OG images |
 | `scripts/render-icons.ts` | Rasterise `public/icon.svg` → `android.png` (192) and `ios.png` (512) |

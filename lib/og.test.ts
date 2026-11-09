@@ -5,6 +5,7 @@ import {
   OG_IMAGE_SIZE,
   REVEAL_OG_COPY,
   eventOgCopy,
+  guestRevealMetadata,
   metadataFromOg,
   resolvedOgBanner,
   resolvedOgIcon,
@@ -72,6 +73,21 @@ describe("eventOgCopy", () => {
       title: "Office party",
       description: "Organise Office party: guests, exclusions and the draw.",
     });
+  });
+});
+
+describe("guestRevealMetadata", () => {
+  it("uses site defaults when the token is unknown", () => {
+    const meta = guestRevealMetadata(OG_DEFAULTS, null);
+    expect(meta.robots).toBeUndefined();
+    expect(meta.title).toBe(OG_DEFAULTS.title);
+  });
+
+  it("uses generic giver-language copy and forbids indexing", () => {
+    const meta = guestRevealMetadata(OG_DEFAULTS, { giver: { language: "en" } });
+    expect(meta.robots).toEqual({ index: false, follow: false });
+    expect(meta.title).toBe(REVEAL_OG_COPY.en.title);
+    expect(JSON.stringify(meta)).not.toMatch(/Ada|Bea|Xmas/);
   });
 });
 

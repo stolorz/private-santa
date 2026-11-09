@@ -11,6 +11,8 @@ import {
   makeGuest,
   makePerson,
   makeSeries,
+  makeEventPhoto,
+  makeEventPhotoVariant,
   makeEventTemplate,
   makeWishlistItem,
 } from "@/test/helpers/fixtures";
@@ -541,6 +543,20 @@ describe("deleteEdition", () => {
     expect(mockDb.rows(schema.event)).toHaveLength(1);
     expect(mockDb.rows(schema.person).map((p) => p.id)).toEqual([1]);
     expect(mockDb.rows(schema.guest)).toHaveLength(1);
+  });
+
+  it("deletes gallery photo rows with the edition", async () => {
+    mockDb.seed(schema.eventSeries, [makeSeries()]);
+    mockDb.seed(schema.event, [
+      makeEvent({ id: 1 }),
+      makeEvent({ id: 2, code: "later1" }),
+    ]);
+    mockDb.seed(schema.eventPhoto, [makeEventPhoto()]);
+    mockDb.seed(schema.eventPhotoVariant, [makeEventPhotoVariant()]);
+    await deleteEdition(makeEvent());
+    expect(mockDb.rows(schema.eventPhoto)).toEqual([]);
+    expect(mockDb.rows(schema.eventPhotoVariant)).toEqual([]);
+    expect(mockDb.rows(schema.event).map((e) => e.id)).toEqual([2]);
   });
 
   it("deletes the series when the last edition goes", async () => {

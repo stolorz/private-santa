@@ -730,6 +730,18 @@ describe("template items", () => {
       "reveal.previous_description",
       "reveal.previous_row",
     ]);
+    expect(
+      TEMPLATE_FIELDS.filter((f) => f.item === "reveal.photos").map((f) => f.id),
+    ).toEqual([
+      "reveal.photos_button",
+      "reveal.photos_current",
+      "reveal.gallery_title",
+      "reveal.gallery_back",
+      "reveal.gallery_download",
+      "reveal.gallery_close",
+      "reveal.gallery_previous",
+      "reveal.gallery_next",
+    ]);
   });
 });
 

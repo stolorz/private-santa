@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Gift, Snowflake, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
+import {
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { BerrySprig, GiftBox } from "@/components/festive/festive-motifs";
 import { WinterCard } from "@/components/festive/winter-page";
 import { PreviousYears } from "@/components/reveal/previous-years";
 import { requestJson } from "@/lib/fetch-json";
-import { photoUrl, revealApiPath } from "@/lib/public-path";
+import { galleryPath, photoUrl, revealApiPath } from "@/lib/public-path";
 import type { PastGift, RevealedMatch } from "@/lib/reveal";
 import { interpolate } from "@/lib/templates/parse";
 import type { RevealCopy } from "@/lib/templates/render";
@@ -62,6 +67,33 @@ function MatchPortrait({
   );
 }
 
+function CurrentEditionPhotos({
+  token,
+  eventCode,
+  title,
+  button,
+}: {
+  token: string;
+  eventCode: string;
+  title: string;
+  button: string;
+}) {
+  return (
+    <WinterCard>
+      <CardHeader className="px-6 pt-7 pb-4 sm:px-8">
+        <CardTitle className="text-xl text-foreground sm:text-2xl">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-6 pb-7 sm:px-8">
+        <Button asChild>
+          <Link href={galleryPath(token, eventCode)}>{button}</Link>
+        </Button>
+      </CardContent>
+    </WinterCard>
+  );
+}
+
 export function ReceiverReveal({
   token,
   budget,
@@ -69,6 +101,7 @@ export function ReceiverReveal({
   initiallyRevealed,
   initialMatch,
   previousGifts = [],
+  currentEventCode,
   preview = false,
   previewBusy = false,
   previewError = null,
@@ -82,6 +115,7 @@ export function ReceiverReveal({
   initiallyRevealed: boolean;
   initialMatch: RevealedMatch | null;
   previousGifts?: readonly PastGift[];
+  currentEventCode?: string;
   /** Render a fixture. Does not ping open, unwrap, or wishlist-seen. */
   preview?: boolean;
   previewBusy?: boolean;
@@ -102,6 +136,14 @@ export function ReceiverReveal({
   const showingBusy = preview ? previewBusy : busy;
   const showingError = preview ? previewError : error;
   const resolvePhoto = preview ? (photoSrc ?? photoUrl) : photoUrl;
+  const currentPhotos = currentEventCode ? (
+    <CurrentEditionPhotos
+      token={token}
+      eventCode={currentEventCode}
+      title={copy.photosCurrent}
+      button={copy.photosButton}
+    />
+  ) : null;
 
   useEffect(() => {
     if (preview) return;
@@ -167,6 +209,7 @@ export function ReceiverReveal({
           </CardContent>
         </WinterCard>
         {children}
+        {currentPhotos}
       </>
     );
   }
@@ -228,7 +271,8 @@ export function ReceiverReveal({
         </CardContent>
       </WinterCard>
       {children}
-      <PreviousYears gifts={previousGifts} copy={copy} />
+      {currentPhotos}
+      <PreviousYears gifts={previousGifts} copy={copy} token={token} />
     </>
   );
 }

@@ -42,5 +42,13 @@
   "reveal.unwrap_error": "No se pudo abrir tu sorteo. Inténtalo de nuevo.",
   "reveal.previous_title": "Años anteriores",
   "reveal.previous_description": "En años anteriores preparaste regalos para",
-  "reveal.previous_row": "{year} — {receiver}"
+  "reveal.previous_row": "{year} — {receiver}",
+  "reveal.photos_button": "Fotos",
+  "reveal.photos_current": "Fotos de {event}",
+  "reveal.gallery_title": "Fotos de {event}",
+  "reveal.gallery_back": "Volver",
+  "reveal.gallery_download": "Descargar original",
+  "reveal.gallery_close": "Cerrar",
+  "reveal.gallery_previous": "Foto anterior",
+  "reveal.gallery_next": "Foto siguiente"
 }

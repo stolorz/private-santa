@@ -6,12 +6,32 @@ import {
   authBasePath,
   authClientOrigin,
   authTrustedOrigins,
+  adminGalleryMediaPath,
   eventApiPath,
+  galleryMediaPath,
+  galleryPath,
   photoUrl,
   publicOrigin,
   revealApiPath,
   withAuthPath,
 } from "./public-path";
+
+describe("galleryPath", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("is a <Link> href and does not prepend NEXT_PUBLIC_BASE_PATH", () => {
+    vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "");
+    expect(galleryPath("tok", "edcode")).toBe("/tok/photos/edcode");
+    vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/your-prefix/");
+    expect(galleryPath("tok", "edcode")).toBe("/tok/photos/edcode");
+  });
+
+  it("encodes the token and edition code", () => {
+    expect(galleryPath("a/b", "c d")).toBe("/a%2Fb/photos/c%20d");
+  });
+});
 
 describe("appBasePath", () => {
   afterEach(() => {
@@ -30,6 +50,12 @@ describe("appBasePath", () => {
     expect(revealApiPath("tok", "/wishlist")).toBe("/api/reveal/tok/wishlist");
     expect(photoUrl(null)).toBeNull();
     expect(photoUrl("ab.jpg")).toBe("/api/uploads/ab.jpg");
+    expect(galleryMediaPath("tok", "ab".repeat(16), "thumb")).toBe(
+      `/api/reveal/tok/photos/${"ab".repeat(16)}/thumb`,
+    );
+    expect(adminGalleryMediaPath("edcode", "ab".repeat(16), "hd")).toBe(
+      `/api/e/edcode/photos/${"ab".repeat(16)}/hd`,
+    );
   });
 
   it("prefixes paths and strips a trailing slash on the env value", () => {
@@ -44,6 +70,12 @@ describe("appBasePath", () => {
     );
     expect(authBasePath()).toBe("/your-prefix/api/auth");
     expect(photoUrl("ab.jpg")).toBe("/your-prefix/api/uploads/ab.jpg");
+    expect(galleryMediaPath("tok", "id", "thumb")).toBe(
+      "/your-prefix/api/reveal/tok/photos/id/thumb",
+    );
+    expect(adminGalleryMediaPath("edcode", "id", "uhd")).toBe(
+      "/your-prefix/api/e/edcode/photos/id/uhd",
+    );
   });
 
   it("strips a path from the public origin so Better Auth can append /api/auth", () => {

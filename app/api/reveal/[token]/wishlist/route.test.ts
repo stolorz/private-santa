@@ -13,6 +13,7 @@ import {
 } from "@/test/helpers/fixtures";
 import { jsonRequest, tokenParams } from "@/test/helpers/request";
 import { nameCases } from "@/lib/name-cases";
+import { WISHLIST_CLOSED_MESSAGE } from "@/lib/wishlist";
 
 const notifyAdminsOfGuestActivity = vi.hoisted(() =>
   vi.fn(async (_payload: unknown) => undefined),
@@ -33,7 +34,7 @@ const TOKEN = "guest-token";
 
 function seedPair() {
   mockDb.seed(schema.eventSeries, [makeSeries()]);
-  mockDb.seed(schema.event, [makeEvent()]);
+  mockDb.seed(schema.event, [makeEvent({ occursOn: "2099-12-24" })]);
   mockDb.seed(schema.draw, [makeDraw()]);
   mockDb.seed(schema.person, [
     makePerson({ id: 1, name: "Ada" }),
@@ -126,5 +127,30 @@ describe("/api/reveal/[token]/wishlist", () => {
       text: "A book",
     });
     expect(mockDb.rows(schema.wishlistItem)[0]).not.toHaveProperty("url");
+  });
+
+  it("refuses to add an item after the event date and still lists the list", async () => {
+    mockDb.seed(schema.event, [makeEvent({ occursOn: "2000-01-01" })]);
+    mockDb.seed(schema.wishlistItem, [
+      makeWishlistItem({ id: 1, guestId: 1, text: "Mine" }),
+    ]);
+    const added = await POST(
+      jsonRequest("/api/reveal/" + TOKEN + "/wishlist", { text: "A book" }),
+      tokenParams(TOKEN),
+    );
+    expect(added.status).toBe(400);
+    await expect(added.json()).resolves.toEqual({
+      error: WISHLIST_CLOSED_MESSAGE,
+    });
+    expect(mockDb.rows(schema.wishlistItem)).toHaveLength(1);
+
+    const listed = await GET(
+      new NextRequest(`http://localhost/api/reveal/${TOKEN}/wishlist`),
+      tokenParams(TOKEN),
+    );
+    expect(listed.status).toBe(200);
+    await expect(listed.json()).resolves.toEqual([
+      expect.objectContaining({ id: 1, text: "Mine" }),
+    ]);
   });
 });

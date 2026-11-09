@@ -3,6 +3,8 @@ import type {
   Assignment,
   Draw,
   Event,
+  EventPhoto,
+  EventPhotoVariant,
   EventSeries,
   EventTemplate,
   Exclusion,
@@ -335,6 +337,37 @@ export function makeEventTemplate(
     templateId: "email.subject",
     language: "en",
     value: "Custom {event}",
+    ...overrides,
+  };
+}
+
+export function makeEventPhoto(overrides: Partial<EventPhoto> = {}): EventPhoto {
+  return {
+    id: "a".repeat(32),
+    eventId: 1,
+    originalName: "IMG_1.JPG",
+    mime: "image/jpeg",
+    ext: "jpg",
+    size: 1000,
+    width: 800,
+    height: 600,
+    capturedAt: FIXTURE_NOW,
+    uploadedAt: FIXTURE_NOW,
+    ...overrides,
+  };
+}
+
+export function makeEventPhotoVariant(
+  overrides: Partial<EventPhotoVariant> = {},
+): EventPhotoVariant {
+  return {
+    id: 1,
+    photoId: "a".repeat(32),
+    variant: "thumb",
+    status: "pending",
+    error: null,
+    durationMs: null,
+    bytes: null,
     ...overrides,
   };
 }

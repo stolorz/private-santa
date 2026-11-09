@@ -31,6 +31,14 @@ export type RevealCopy = {
   previousTitle: string;
   previousDescription: string;
   previousRow: string;
+  photosButton: string;
+  photosCurrent: string;
+  galleryTitle: string;
+  galleryBack: string;
+  galleryDownload: string;
+  galleryClose: string;
+  galleryPrevious: string;
+  galleryNext: string;
   notFoundTitle: string;
   notFoundDescription: string;
   unwrapError: string;
@@ -57,6 +65,14 @@ export function revealCopy(
     previousTitle: t("reveal.previous_title"),
     previousDescription: t("reveal.previous_description"),
     previousRow: t("reveal.previous_row"),
+    photosButton: t("reveal.photos_button"),
+    photosCurrent: t("reveal.photos_current"),
+    galleryTitle: t("reveal.gallery_title"),
+    galleryBack: t("reveal.gallery_back"),
+    galleryDownload: t("reveal.gallery_download"),
+    galleryClose: t("reveal.gallery_close"),
+    galleryPrevious: t("reveal.gallery_previous"),
+    galleryNext: t("reveal.gallery_next"),
     notFoundTitle: t("reveal.not_found_title"),
     notFoundDescription: t("reveal.not_found_description"),
     unwrapError: t("reveal.unwrap_error"),

@@ -4,9 +4,9 @@ React 19 client components by feature. Pages under `app/(admin)` and
 `app/(public)` are thin: load data in RSC, render a feature component.
 
 Client mutations go through `lib/fetch-json.ts` (`requestJson` never throws)
-and `hooks/use-mutation.ts` (`busy` / `error` / `run`). Always build URLs
-with `apiPath()` / `eventApiPath()` / `revealApiPath()` — see
-[architecture.md](architecture.md) `basePath`.
+and `hooks/use-mutation.ts` (`busy` / `error` / `run`). Always build fetch URLs with `apiPath()` / `eventApiPath()` /
+`revealApiPath()`. Guest gallery pages use `galleryPath()` in `<Link>`
+(Next prefixes `basePath`) — see [architecture.md](architecture.md).
 
 ## Feature folders
 
@@ -17,7 +17,8 @@ view types.
 
 | File | Tab |
 |---|---|
-| `admin-nav.tsx` | General, Templates, Guests, Exclusions, Draw, Delivery. The Templates tab shows a red count of that edition’s saved template problem lines on every edition tab. The open editor replaces it with the draft count. The tab stays plain when the count is zero |
+| `admin-nav.tsx` | General, Templates, Guests, Exclusions, Draw, Delivery, Photos. Guest and photo tallies are a small raised muted chip, hidden at 0. The Templates tab shows a red chip of that edition’s saved template problem lines on every edition tab. The open editor replaces it with the draft count. The tab stays plain when the count is zero. Tab labels do not wrap |
+| `photos-tab.tsx` | Multi-file picker and drop zone, chunked 1 MB uploads (three files at a time, and three chunks of each file at a time), progress rows, thumbnail grid (processing / ready / failed) with delete and retry. Ready thumbs load lazily. Warns when the photo worker heartbeat is stale. Polls every 5s while variants are pending or running |
 | `guests-tab.tsx` | Guest list; uses `components/guests/guest-editor`. Collapsed rows show `Gender is required.` until one is set |
 | `exclusions-tab.tsx` | Automatic exclusions (self-draw / past pairings, saved on the edition) plus forbidden pairs; `pair-picker.tsx` |
 | `draw-tab.tsx` | Run / inspect + guest links; uses the edition automatic exclusions; `draw-confirm-dialog.tsx`. Current draw has an Export CSV link (`draw_results_YYYY.csv`, giver and receiver) |
@@ -44,8 +45,20 @@ view types.
 Guest portal. `receiver-reveal.tsx` — unwrap animation, then match portrait,
 intro line + templated large name (`reveal.revealed_name`), budget, and the
 match’s wishlist in a framed box (heading always shown, including
-`{receiver}`). After unwrap it also renders `children` (own wishlist) and,
-when the giver has past gifts, `previous-years.tsx` at the bottom.
+`{receiver}`). After unwrap it also renders `children` (the giver’s own
+wishlist, only before the party date) and, when the giver has past gifts,
+`previous-years.tsx` at the bottom.
+When a past gift has `photoCount > 0`, that row becomes a flex row with a
+truncated label and a Photos button. A current-edition photos card with
+the same button shows only after the party date (next UTC day) once that
+edition has ready thumbnails, wrapped or not. Before that date the page
+treats this year’s photos as missing. After the date the wishlist editor
+is omitted; if there are no ready photos, that block is omitted too.
+`photo-gallery.tsx` is the square thumb grid
+(2 / 3 / 5 columns from phone to laptop) plus lightbox. The gallery
+page uses `WinterPage` `wide` so the column grows at `lg`. `photo-lightbox.tsx` picks the smallest ready AVIF that
+covers the displayed long edge, prefetches neighbours, and supports swipe,
+arrow keys, Esc, tap-to-zoom, and download original.
 `preview` skips the open / unwrap /
 wishlist-seen pings so Settings can show the same card. `onPreviewUnwrap`
 reveals that fixture in the preview. `wishlist-editor.tsx` — giver’s own
@@ -58,7 +71,7 @@ text is not saved. An empty list shows only the add field. `previous-years.tsx` 
 
 | File | Role |
 |---|---|
-| `settings-nav.tsx` | Integrations / Templates / Guests / Safety. The Templates tab shows a red count of the saved reference problem lines on every Settings page. The open editor replaces it with the draft count. The tab stays plain when the count is zero |
+| `settings-nav.tsx` | Integrations / Templates / Guests / Safety. The Templates tab shows a red chip of the saved reference problem lines on every Settings page. The open editor replaces it with the draft count. The tab stays plain when the count is zero |
 | `template-error-count.tsx` | Saved problem-line total for the Templates tab. The open editor publishes a draft override and clears it on leave |
 | `safety-settings.tsx` | Auth secret status + rotate (never shows the secret) |
 | `integrations-settings.tsx` | Orchestrates channel forms. Local view after save; does not copy RSC `initial` back |
@@ -69,7 +82,7 @@ text is not saved. An empty list shows only the add field. `previous-years.tsx` 
 | `integrations/integration-section.tsx` | Shared section chrome |
 | `integrations/test-result.tsx` | Last test outcome |
 | `templates-settings.tsx` + `template-editor.tsx` | Per-language copy + placeholder autocomplete. Same editor for Settings → Templates (JSON reference, no Restore) and the edition Templates tab (Restore fills the current language from Settings). Local view after save; does not copy RSC `initial` back. Invalid placeholders: counted red summary, problem list, red field border, forced-open group, disabled Save with the reason. Each language button shows a red count of that language’s problem lines, and stays plain when there are none. While this editor is open, its total replaces the saved count on the Templates tab |
-| `template-preview.tsx` | Full-screen preview of the unsaved template: invitation or wishlist-change mail, Signal, push, or the reveal page. Language tabs and Refresh pick another fixture guest pair. The reveal button unwraps the fixture locally. The shared wishlist button previews inside the “added” mail |
+| `template-preview.tsx` | Full-screen preview of the unsaved template: invitation or wishlist-change mail, Signal, push, or the reveal page (wishlist before the fixture party date, this year’s photos after). Language tabs and Refresh pick another fixture guest pair. The reveal button unwraps the fixture locally. The shared wishlist button previews inside the “added” mail |
 | `people-settings.tsx` | App-wide people directory. Collapsed rows show `Gender is required.` when the person has no gender |
 
 ### `components/events/`
@@ -106,7 +119,7 @@ as a square JPEG.
 
 `page-shell.tsx` (`PageShell`, `CenteredCard`), `page-header.tsx`
 (optional `leading` controls sit with the title; `actions` stay on the
-right). `tab-nav.tsx` (optional red problem-line count on a tab),
+right). `tab-nav.tsx` (nowrap labels; optional raised count chip, muted tally or red problem count, hidden at 0),
 `sign-out-button.tsx`. Sign out is the leading control on `/events` and
 Settings, so it sits apart from Settings and Events.
 
@@ -133,11 +146,13 @@ input, label, popover, select, switch, tooltip, command, plus app helpers
 | `/e/[code]/admin/exclusions` | `ExclusionsTab` |
 | `/e/[code]/admin/draw` | `DrawTab` |
 | `/e/[code]/admin/delivery` | `DeliveryTab` |
+| `/e/[code]/admin/photos` | `PhotosTab` |
 | `/settings/integrations` | `IntegrationsSettings` |
 | `/settings/templates` | `TemplatesSettings` |
 | `/settings/people` | `PeopleSettings` |
 | `/settings/safety` | `SafetySettings` |
-| `/{token}` | `ReceiverReveal` (own wishlist as children; previous years after unwrap). Invalid token: JSON reference not-found copy |
+| `/{token}` | `ReceiverReveal` (own wishlist as children until the party date; previous years after unwrap; current-edition photos card after the date when ready). Invalid token: JSON reference not-found copy |
+| `/{token}/photos/{code}` | `PhotoGallery` + `PhotoLightbox` on a `wide` `WinterPage`. Invalid token or edition: same not-found copy |
 | `/login` `/login/forgot` `/login/reset` `/signup` | `CenteredCard` + form. Forgot password always shows check-email after submit. Reset reads `token` / `error` and returns to log in after a new password. Signup shows check-email when `needsVerification` |
 
 ## Client data rules

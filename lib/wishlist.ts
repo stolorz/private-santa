@@ -3,6 +3,7 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, first, schema } from "@/lib/db";
 import { DomainError } from "@/lib/errors";
+import { isOccursOnPast } from "@/lib/occurs-on";
 import { guestById } from "@/lib/people";
 import { notifyAdminsOfGuestActivity } from "@/lib/push";
 import { asNameCases } from "@/lib/name-cases";
@@ -15,6 +16,22 @@ export const wishlistTextSchema = z.object({
   text: z.string().min(1),
 });
 
+export const WISHLIST_CLOSED_MESSAGE =
+  "The wishlist cannot be changed after the event date.";
+
+/** Closed only when both the seat and edition exist and the party date is past. */
+function assertWishlistOpen(guestId: number): void {
+  const row = db
+    .select({ occursOn: schema.event.occursOn })
+    .from(schema.guest)
+    .innerJoin(schema.event, eq(schema.event.id, schema.guest.eventId))
+    .where(eq(schema.guest.id, guestId))
+    .get();
+  if (row && isOccursOnPast(row.occursOn)) {
+    throw new DomainError(WISHLIST_CLOSED_MESSAGE);
+  }
+}
+
 export async function listWishlistItems(guestId: number) {
   return db
     .select()
@@ -23,6 +40,7 @@ export async function listWishlistItems(guestId: number) {
 }
 
 export async function addWishlistItem(guestId: number, text: string) {
+  assertWishlistOpen(guestId);
   const row = await first(
     db
       .insert(schema.wishlistItem)
@@ -38,6 +56,7 @@ export async function updateOwnedWishlistItem(
   id: number,
   text: string,
 ) {
+  assertWishlistOpen(guestId);
   const owned = await first(
     db
       .select()
@@ -65,6 +84,7 @@ export async function updateOwnedWishlistItem(
 }
 
 export async function deleteOwnedWishlistItem(guestId: number, id: number) {
+  assertWishlistOpen(guestId);
   const owned = await first(
     db
       .select()

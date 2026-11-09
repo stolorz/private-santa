@@ -15,11 +15,13 @@ event_series 1──* event 1──* guest *──1 person *──0..1 user
                     │                ├──* invitation_send
                     │                └──* guest_activity
                     ├──* exclusion (guest a, guest b)
-                    └──* event_template
+                    ├──* event_template
+                    └──* event_photo 1──* event_photo_variant
 ```
 
 Deleting an edition cascades guests, draws, assignments, exclusions,
-wishlists, invitation logs, activity, and event templates. Deleting a person cascades seats.
+wishlists, invitation logs, activity, event templates, and photos
+(application code also removes `UPLOADS_DIR/gallery/{id}/`). Deleting a person cascades seats.
 `person.userId` is **set null** if the login is deleted. Completed-draw
 membership **blocks** person/guest/edition deletion in application code.
 
@@ -68,6 +70,24 @@ blank. Not in git. Creating an edition copies the source edition's rows, or
 inserts the current Settings → Templates JSON when the source has no rows.
 A later JSON edit does not change an edition that already has rows. Missing
 field ids on a partial snapshot are filled from that JSON at read time.
+
+### `event_photo`
+
+One organiser-uploaded photo on an edition. Random 32-hex `id`. Original
+name, mime, extension, byte size, width/height after rotation. HEIC may
+be 1×1 until the first variant finishes. `capturedAt`
+(EXIF `DateTimeOriginal`, then the browser `lastModified`, then upload)
+time), `uploadedAt`. Files live in `UPLOADS_DIR/gallery/{id}/` as
+`original.{ext}` plus `{variant}.avif`. Not copied to a new edition.
+Guests see a row only after the `thumb` variant is `done`. Sorted oldest
+`capturedAt` first.
+
+### `event_photo_variant`
+
+One row per photo and size (`thumb`, `hd`, `fhd`, `uhd`). Unique
+`(photoId, variant)`. `status` `pending` \| `running` \| `done` \| `error`,
+plus `error`, `durationMs`, and `bytes`. The photo worker claims `pending`
+rows (every photo's `thumb` before any `hd`, and so on).
 
 ### `person`
 
@@ -171,7 +191,7 @@ No phone and no email, when a namesake exists, is a `PersonError` unless
 separate → `PersonError`.
 
 New edition (`createEdition`): copies guests and remaps exclusions by
-person. Wishlists and draws are **not** copied. Budget, translated names,
+person. Wishlists, draws, and photos are **not** copied. Budget, translated names,
 location, and templates copy from the source edition (or latest other
 edition in the series). Automatic exclusions are **not** copied:
 `allowSelfDraw` starts false, `avoidPastPairings` is on only when an earlier

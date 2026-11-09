@@ -5,13 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requestJson = vi.fn();
 
-vi.mock("@/lib/fetch-json", () => ({
-  jsonBody: (body: unknown) => ({
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }),
-  requestJson: (...args: unknown[]) => requestJson(...args),
-}));
+vi.mock("@/lib/fetch-json", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/fetch-json")>();
+  return {
+    ...actual,
+    requestJson: (...args: unknown[]) => requestJson(...args),
+  };
+});
 
 import {
   WishlistEditor,
@@ -172,6 +172,49 @@ describe("WishlistEditor", () => {
     render(<WishlistEditor token="abcdefghijkl" initial={[]} language="ja" />);
     expect(screen.getByPlaceholderText(/あたたかいマフラー/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "追加する" })).toBeTruthy();
+  });
+
+  it("shows the closed message when add, edit, or delete is refused after the party", async () => {
+    const user = userEvent.setup();
+    const closed = "The wishlist cannot be changed after the event date.";
+    requestJson.mockResolvedValue({
+      ok: false,
+      data: null,
+      error: closed,
+      status: 400,
+    });
+    render(
+      <WishlistEditor
+        token="abcdefghijkl"
+        initial={[
+          {
+            id: 1,
+            guestId: 1,
+            text: "A scarf",
+            createdAt: new Date("2026-01-01"),
+          },
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText(/warm scarf/), "A book");
+    await user.click(screen.getByRole("button", { name: /Add/ }));
+    expect(await screen.findAllByText(closed)).toHaveLength(1);
+    expect(screen.queryByText("A book")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(await screen.findAllByText(closed)).toHaveLength(2);
+    expect(screen.getByText("A scarf")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    const field = screen.getByDisplayValue("A scarf");
+    await user.clear(field);
+    await user.type(field, "Warm gloves");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findAllByText(closed)).toHaveLength(3);
+    expect(screen.getByDisplayValue("Warm gloves")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("A scarf")).toBeTruthy();
   });
 
   it("localizes Spanish and truncates a long placeholder with an ellipsis", () => {

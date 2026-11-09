@@ -163,6 +163,10 @@ describe("preview surfaces", () => {
       kind: "reveal",
       stage: "unwrapped",
     });
+    expect(previewSurface("reveal.photos")).toEqual({
+      kind: "reveal",
+      stage: "unwrapped",
+    });
     expect(previewSurface("reveal.not_found")).toEqual({
       kind: "reveal",
       stage: "not-found",
@@ -405,7 +409,14 @@ describe("preview rendering", () => {
 
   it("keeps receiver tokens until unwrap and swaps in the budget sentence", () => {
     const family = sampleFor("family", "anna", "piotr");
-    const wrapped = buildRevealPreview(TEMPLATE_DEFAULTS, "pl", family, "wrapped");
+    const beforeParty = new Date("2026-12-24T12:00:00.000Z");
+    const wrapped = buildRevealPreview(
+      TEMPLATE_DEFAULTS,
+      "pl",
+      family,
+      "wrapped",
+      beforeParty,
+    );
     expect(wrapped.match).toBeNull();
     expect(wrapped.copy.revealedTitle).toBe("W tym roku obdarujesz");
     expect(wrapped.copy.revealedName).toBe("{receiver_biernik}");
@@ -414,7 +425,13 @@ describe("preview rendering", () => {
     expect(wrapped.copy.budgetLabel).toBe(wrapped.budget);
     expect(wrapped.eventTitle).toBe("Rodzinne Święta 2026");
 
-    const opened = buildRevealPreview(TEMPLATE_DEFAULTS, "pl", family, "unwrapped");
+    const opened = buildRevealPreview(
+      TEMPLATE_DEFAULTS,
+      "pl",
+      family,
+      "unwrapped",
+      beforeParty,
+    );
     expect(opened.match?.name).toBe("Piotr Nowak");
     expect(opened.match?.nameDopelniacz).toBe("Piotra Nowaka");
     expect(opened.match?.wishlist.map((item) => item.text)).toEqual(["Słuchawki"]);
@@ -426,6 +443,22 @@ describe("preview rendering", () => {
     ]);
     expect(opened.copy.previousTitle).toBe("Poprzednie lata");
     expect(opened.copy.previousRow).toBe("{year} — {receiver_dopelniacz}");
+    expect(opened.copy.photosButton).toBe("Zdjęcia");
+    expect(opened.currentPhotoCount).toBe(0);
+    expect(opened.showOwnWishlist).toBe(true);
+    expect(opened.currentEventCode).toBe("family");
+    expect(opened.copy.photosCurrent).toContain("Rodzinnych Świąt 2026");
+    const afterParty = buildRevealPreview(
+      TEMPLATE_DEFAULTS,
+      "pl",
+      family,
+      "unwrapped",
+      new Date("2026-12-25T12:00:00.000Z"),
+    );
+    expect(afterParty.currentPhotoCount).toBe(4);
+    expect(afterParty.showOwnWishlist).toBe(false);
+    expect(opened.previousGifts.map((gift) => gift.photoCount)).toEqual([6, 0]);
+    expect(opened.previousGifts[0]?.eventCode).toBe("fam25a");
 
     expect(
       buildRevealPreview(TEMPLATE_DEFAULTS, "de", family, "unwrapped").copy

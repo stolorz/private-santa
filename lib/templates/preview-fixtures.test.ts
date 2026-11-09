@@ -141,5 +141,8 @@ describe("preview fixtures", () => {
         (gift) => gift.giverId === "anna" && gift.receiverId === "lucia",
       ),
     ).toBe(true);
+    expect(PREVIEW_EVENTS.find((event) => event.id === "family")?.photoCount).toBe(
+      4,
+    );
   });
 });

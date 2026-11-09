@@ -97,7 +97,9 @@ Do not break these. Tests encode most of them.
 15. **Email bounces** match `X-Santa-Token` / `<santa.{token}@…>` first, then
     latest completed assignment for that recipient email.
 16. **`fetch("/api/…")` ignores Next `basePath`.** Always use `apiPath()`,
-    `eventApiPath()`, `revealApiPath()` from `lib/public-path.ts`.
+    `eventApiPath()`, `revealApiPath()`, `galleryMediaPath()`,
+    and `adminGalleryMediaPath()` from `lib/public-path.ts`. Guest gallery
+    pages use `galleryPath()` in `<Link>` (Next prefixes `basePath`).
 17. **Budget is an explicit choice.** `amount` (positive, with EUR/PLN/JPY
     extras that match the primary currency; FX is NBP Table A via PLN),
     `zero` (make the gift, no money), or `unlimited` (no spending limit).
@@ -127,12 +129,27 @@ Do not break these. Tests encode most of them.
     the edition tab) shows a counted red summary, a problem list naming
     language, field, and the broken token, a red border on the field, and
     a disabled Save with the reason. Save APIs refuse the same errors.
+22. **Edition galleries sit behind the reveal token.** The organiser uploads
+    on the Photos tab (far right of edition admin). A separate `photos:worker`
+    process encodes AVIF `thumb` / `hd` / `fhd` / `uhd`. Guests see a photo
+    only after `thumb` is `done`. A token may open its own edition only
+    after that edition’s party date is past (next UTC day, same as
+    `isOccursOnPast`), or an earlier series edition where that person
+    was a giver (an `EXISTS` equivalent to the set
+    `listPastGiftsForGiverOn` returns). Every other request is
+    `"This link is invalid."`. Photos are not copied to
+    a new edition. Deleting an edition removes its gallery folders. The
+    guest reveal page hides this year’s photos until then and keeps the
+    giver’s wishlist editor; afterwards the editor is gone and a photos
+    link shows only when ready thumbnails exist. Previous-year photo
+    links stay. Wishlist add / edit / delete then return
+    `"The wishlist cannot be changed after the event date."`
 
 ## Where to edit
 
 | Area | Path | Notes |
 |---|---|---|
-| Public pages | `app/(public)/` | `/`, `/login`, `/signup`, `/{token}`. Parentheses are not URLs. |
+| Public pages | `app/(public)/` | `/`, `/login`, `/signup`, `/{token}`, `/{token}/photos/{code}`. Parentheses are not URLs. |
 | Organiser pages | `app/(admin)/` | `/events`, `/e/[code]/admin/*`, `/settings/*` |
 | JSON API | `app/api/` | Thin wrappers over `lib/`. Use `route({ auth })`. |
 | Domain | `lib/` | See [docs/domain.md](docs/domain.md) |
@@ -140,7 +157,7 @@ Do not break these. Tests encode most of them.
 | UI | `components/` | Feature folders: `event-admin`, `guests`, `reveal`, `settings`, `events`, `layout`, `festive`, `inputs`, `ui` |
 | Tests | `*.test.ts` next to source | In-memory SQLite. See [docs/testing.md](docs/testing.md) |
 | Schema | `lib/db/schema.ts` + `drizzle/` | `npm run db:generate` then `db:migrate` |
-| Background jobs | `instrumentation.ts` → `lib/background-jobs.ts` | Signal keep-alive 12h, IMAP bounce poll 60s |
+| Background jobs | `instrumentation.ts` → `lib/background-jobs.ts` | Signal keep-alive 12h, IMAP bounce poll 60s. Photo encoding is a separate `npm run photos:worker` process |
 
 Do not add a second copy of pages outside the route groups. Legacy URLs
 (`/admin`, `/dashboard`, `/groups`, `/g/:slug`) redirect to `/events` in
